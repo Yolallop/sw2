@@ -1,0 +1,130 @@
+openapi: 3.0.3  # Versión de OpenAPI utilizada
+info:
+  description: |-  # Información sobre la API
+    My Library documentation
+  version: 1.0.0  # Versión de la API
+  title: Library  # Título de la API
+tags:
+  - name: book  # Etiqueta para agrupar operaciones relacionadas con libros
+    description: Everything about your Books  # Descripción de la etiqueta
+paths:
+  /book:
+    get:
+      summary: GET all books  # Resumen de la operación
+      description: GET all books  # Descripción de la operación
+      responses:
+        "200":
+          description: "OK"  # Descripción de la respuesta 200
+          content:
+             application/json:
+              schema: 
+                $ref: '#/components/schemas/Books'  # Referencia al esquema de la respuesta
+    post:
+      tags:
+        - book  # Etiqueta asociada a esta operación
+      summary: Add a new book to the library  # Resumen de la operación
+      description: Add a new book to the library  # Descripción de la operación
+      operationId: addBook  # Identificador único de la operación
+      responses:
+        '200':
+          description: Successful operation  # Descripción de la respuesta 200
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta
+        '405':
+          description: Invalid input  # Descripción de la respuesta 405
+      requestBody:
+        description: Add a new book to the library  # Descripción del cuerpo de la solicitud
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'  # Referencia al esquema del cuerpo de la solicitud
+  /book/{bookId}:
+    parameters:
+      - $ref: '#/components/parameters/ID'  # Referencia al parámetro ID
+    get:
+      tags:
+        - book  # Etiqueta asociada a esta operación
+      summary: Find book by ID  # Resumen de la operación
+      description: Returns a single book  # Descripción de la operación
+      operationId: getBookById  # Identificador único de la operación
+      responses:
+        '200':
+          description: successful operation  # Descripción de la respuesta 200
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta en XML
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta en JSON
+        '400':
+          description: Invalid ID supplied  # Descripción de la respuesta 400
+        '404':
+          description: Book not found  # Descripción de la respuesta 404
+    delete:
+      tags:
+        - book  # Etiqueta asociada a esta operación
+      summary: Deletes a book  # Resumen de la operación
+      description: ''  # Descripción de la operación (vacía)
+      operationId: deleteBook  # Identificador único de la operación
+      responses:
+        '200':
+          description: Successful operation  # Descripción de la respuesta 200
+        '400':
+          description: Invalid book ID  # Descripción de la respuesta 400
+components:
+  parameters:
+    ID:
+      description: Book ID  # Descripción del parámetro ID
+      name: bookId  # Nombre del parámetro
+      in: path  # Localización del parámetro (en la ruta)
+      required: true  # Indica que el parámetro es obligatorio
+      schema:
+        $ref: "#/components/schemas/ID"  # Referencia al esquema del ID
+  schemas:
+    Books:
+      type: object  # Tipo de esquema (objeto)
+      properties:
+        results:
+          $ref: "#/components/schemas/BooksArray"  # Referencia al esquema de la lista de libros
+        next:
+          type: string  # Tipo de dato (cadena)
+          description: Book next ID for pagination search  # Descripción del campo next
+      required:
+        - results  # Campo obligatorio
+        - next  # Campo obligatorio
+    BooksArray:
+      type: array  # Tipo de esquema (array)
+      items:
+        $ref: "#/components/schemas/BookMin"  # Referencia al esquema de un libro mínimo
+    BookMin:
+      type: object  # Tipo de esquema (objeto)
+      properties:
+        _id:
+          $ref: "#/components/schemas/ID"  # Referencia al esquema del ID
+        title:
+          type: string  # Tipo de dato (cadena)
+          description: Book title  # Descripción del campo title
+        author:
+          type: string  # Tipo de dato (cadena)
+          description: Book author  # Descripción del campo author
+        link:
+          type: string  # Tipo de dato (cadena)
+          format: uri  # Formato del campo (URI)
+          description: URL to the full book resource  # Descripción del campo link
+      required:
+        - _id  # Campo obligatorio
+        - title  # Campo obligatorio
+        - author  # Campo obligatorio
+        - link  # Campo obligatorio
+    Book:
+      # TODO  # Esquema pendiente de definir
+    ID:
+      type: string  # Tipo de dato (cadena)
+      description: Book ID obtained from the database  # Descripción del ID del libro
+      example: 6463448ae7684d03f44af30f  # Ejemplo de un ID
+servers:
+  - url: http://localhost:3010/api/v2  # URL del servidor
