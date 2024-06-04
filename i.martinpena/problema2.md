@@ -41,6 +41,99 @@ db.listingsAndReviews.aggregate([
 
 
 
+### 1. Indicar el título y el número de premios de la película con más premios (wins dentro de awards)
+
+Para encontrar la película con más premios, puedes utilizar la siguiente consulta de agregación:
+
+```javascript
+db.movies.aggregate([
+  {
+    $project: {
+      title: 1,
+      numAwards: "$awards.wins"
+    }
+  },
+  {
+    $sort: { numAwards: -1 }
+  },
+  {
+    $limit: 1
+  }
+])
+```
+
+### 2. Listar las diferentes clasificaciones de edad que existen (`rated`) y el número de documentos que tienen esa clasificación
+
+Para listar las clasificaciones de edad y el número de documentos para cada una, utiliza esta consulta:
+
+```javascript
+db.movies.aggregate([
+  {
+    $group: {
+      _id: "$rated",
+      count: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+```
+
+### 3. Listar los diferentes géneros de película que existen (`genres`)
+
+Para obtener un listado con los diferentes géneros de películas, utiliza esta consulta:
+
+```javascript
+db.movies.aggregate([
+  {
+    $unwind: "$genres"
+  },
+  {
+    $group: {
+      _id: "$genres",
+      count: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+```
+
+### 4. Indicar el número de películas que hay entre los años 1970 y 1975, incluidos ambos extremos
+
+Para contar el número de películas entre los años 1970 y 1975, puedes utilizar esta consulta:
+
+```javascript
+db.movies.countDocuments({
+  year: { $gte: 1970, $lte: 1975 }
+})
+```
+
+### Explicación de las Consultas
+
+1. **Consulta de la Película con Más Premios**:
+   - **$project**: Selecciona los campos `title` y `awards.wins`, renombrando este último a `numAwards`.
+   - **$sort**: Ordena los documentos en orden descendente según el número de premios.
+   - **$limit**: Limita la salida a solo 1 documento, la película con más premios.
+
+2. **Consulta de Clasificaciones de Edad**:
+   - **$group**: Agrupa los documentos por el campo `rated` y cuenta el número de documentos en cada grupo.
+   - **$sort**: Ordena los resultados por el conteo de documentos en orden descendente.
+
+3. **Consulta de Géneros de Película**:
+   - **$unwind**: Descompone el arreglo `genres` para que cada elemento del arreglo se procese como un documento separado.
+   - **$group**: Agrupa los documentos por el campo `genres` y cuenta el número de documentos en cada grupo.
+   - **$sort**: Ordena los resultados por el conteo de documentos en orden descendente.
+
+4. **Consulta de Películas entre 1970 y 1975**:
+   - **countDocuments**: Cuenta los documentos que cumplen con la condición de que el campo `year` esté entre 1970 y 1975, inclusive.
+
+Estas consultas te permitirán obtener la información solicitada de la colección `movies`. Asegúrate de tener índices adecuados en los campos que estás consultando (como `year`, `rated`, `genres`, y `awards.wins`) para mejorar el rendimiento de las consultas.
+
+
+
 
 ## Apartado 4
 
