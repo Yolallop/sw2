@@ -1,130 +1,17 @@
-openapi: 3.0.3  # Versión de OpenAPI utilizada
-info:
-  description: |-  # Información sobre la API
-    My Library documentation
-  version: 1.0.0  # Versión de la API
-  title: Library  # Título de la API
-tags:
-  - name: book  # Etiqueta para agrupar operaciones relacionadas con libros
-    description: Everything about your Books  # Descripción de la etiqueta
-paths:
-  /book:
-    get:
-      summary: GET all books  # Resumen de la operación
-      description: GET all books  # Descripción de la operación
-      responses:
-        "200":
-          description: "OK"  # Descripción de la respuesta 200
-          content:
-             application/json:
-              schema: 
-                $ref: '#/components/schemas/Books'  # Referencia al esquema de la respuesta
-    post:
-      tags:
-        - book  # Etiqueta asociada a esta operación
-      summary: Add a new book to the library  # Resumen de la operación
-      description: Add a new book to the library  # Descripción de la operación
-      operationId: addBook  # Identificador único de la operación
-      responses:
-        '200':
-          description: Successful operation  # Descripción de la respuesta 200
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta
-        '405':
-          description: Invalid input  # Descripción de la respuesta 405
-      requestBody:
-        description: Add a new book to the library  # Descripción del cuerpo de la solicitud
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Book'  # Referencia al esquema del cuerpo de la solicitud
-  /book/{bookId}:
-    parameters:
-      - $ref: '#/components/parameters/ID'  # Referencia al parámetro ID
-    get:
-      tags:
-        - book  # Etiqueta asociada a esta operación
-      summary: Find book by ID  # Resumen de la operación
-      description: Returns a single book  # Descripción de la operación
-      operationId: getBookById  # Identificador único de la operación
-      responses:
-        '200':
-          description: successful operation  # Descripción de la respuesta 200
-          content:
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta en XML
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Book'  # Referencia al esquema de la respuesta en JSON
-        '400':
-          description: Invalid ID supplied  # Descripción de la respuesta 400
-        '404':
-          description: Book not found  # Descripción de la respuesta 404
-    delete:
-      tags:
-        - book  # Etiqueta asociada a esta operación
-      summary: Deletes a book  # Resumen de la operación
-      description: ''  # Descripción de la operación (vacía)
-      operationId: deleteBook  # Identificador único de la operación
-      responses:
-        '200':
-          description: Successful operation  # Descripción de la respuesta 200
-        '400':
-          description: Invalid book ID  # Descripción de la respuesta 400
-components:
-  parameters:
-    ID:
-      description: Book ID  # Descripción del parámetro ID
-      name: bookId  # Nombre del parámetro
-      in: path  # Localización del parámetro (en la ruta)
-      required: true  # Indica que el parámetro es obligatorio
-      schema:
-        $ref: "#/components/schemas/ID"  # Referencia al esquema del ID
-  schemas:
-    Books:
-      type: object  # Tipo de esquema (objeto)
-      properties:
-        results:
-          $ref: "#/components/schemas/BooksArray"  # Referencia al esquema de la lista de libros
-        next:
-          type: string  # Tipo de dato (cadena)
-          description: Book next ID for pagination search  # Descripción del campo next
-      required:
-        - results  # Campo obligatorio
-        - next  # Campo obligatorio
-    BooksArray:
-      type: array  # Tipo de esquema (array)
-      items:
-        $ref: "#/components/schemas/BookMin"  # Referencia al esquema de un libro mínimo
-    BookMin:
-      type: object  # Tipo de esquema (objeto)
-      properties:
-        _id:
-          $ref: "#/components/schemas/ID"  # Referencia al esquema del ID
-        title:
-          type: string  # Tipo de dato (cadena)
-          description: Book title  # Descripción del campo title
-        author:
-          type: string  # Tipo de dato (cadena)
-          description: Book author  # Descripción del campo author
-        link:
-          type: string  # Tipo de dato (cadena)
-          format: uri  # Formato del campo (URI)
-          description: URL to the full book resource  # Descripción del campo link
-      required:
-        - _id  # Campo obligatorio
-        - title  # Campo obligatorio
-        - author  # Campo obligatorio
-        - link  # Campo obligatorio
-    Book:
-      # TODO  # Esquema pendiente de definir
-    ID:
-      type: string  # Tipo de dato (cadena)
-      description: Book ID obtained from the database  # Descripción del ID del libro
-      example: 6463448ae7684d03f44af30f  # Ejemplo de un ID
-servers:
-  - url: http://localhost:3010/api/v2  # URL del servidor
+apartado 1
+
+La especificacion open api esta incompleta:
+
+archivo aqui: (se llama game.schema.yaml) openapi: 3.0.3 info: description: |- My Card Game documentation version: 1.0.0 title: Card Game tags:
+
+    name: card description: Everything about the Card Game paths: /card: get: summary: GET all cards description: GET all cards responses: "200": description: "OK" content: application/json: schema: $ref: '#/components/schemas/Cards' post: tags: - card summary: Add a new card to the game description: Add a new card to the game operationId: addCard responses: '200': description: Successful operation content: application/json: schema: $ref: '#/components/schemas/Card' '405': description: Invalid input requestBody: description: Add a new card to the game required: true content: application/json: schema: $ref: '#/components/schemas/Card' /card/{cardId}: parameters:
+        $ref: '#/components/parameters/ID' get: tags:
+            card summary: Find card by ID description: Returns a single card operationId: getCardById responses: '200': description: successful operation content: application/xml: schema: $ref: '#/components/schemas/Card' application/json: schema: $ref: '#/components/schemas/Card' '400': description: Invalid ID supplied '404': description: Card not found delete: tags:
+            card summary: Deletes a card description: '' operationId: deleteCard responses: '200': description: Successful operation '400': description: Invalid card ID /deck: post:
+    TODO
+
+components: parameters: ID: description: Card ID name: cardId in: path required: true schema: $ref: "#/components/schemas/ID" schemas: Cards: type: object properties: results: $ref: "#/components/schemas/CardsArray" next: type: string description: Card next ID for pagination search required: - results - next CardsArray: type: array items: $ref: "#/components/schemas/CardMin" CardMin: type: object properties: _id: $ref: "#/components/schemas/ID" name: type: string description: Card name type: $ref: "#/components/schemas/Type" required: - _id - name - type Card: # TODO Type: type: string enum: ["hero", "ally", "event"] description: Card type ID: type: string description: Card ID obtained from the database example: 01001 servers:
+
+    url: localhost:3000/api/
+
+Complete la seccion de components/schemas/Card dentro del fichero de especificacion para definir el json schema de una carta basandote en las cartas que que hay actaulmente en dataset cargado. Tango en cuenta que hay diferentes caartas que dependen del atributo type que tengan: cartas de distinto type tienen algunos campos diferentes, pero las cartas con el mismo tpe tien todas los mismos campos. considere los diferentes tipos de cartas a la hora de completar el openapi y ademas tenga en cuenta que los campos abligatorios son aquellos que son comunes en todas las cartas. finalmente tenga en cuenta que no se puede añadir ningun campo extra, pero tienen que aparecer los campos de todas las cartas que estan en el dataset. se breve y conciso.
