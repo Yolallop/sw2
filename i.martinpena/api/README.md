@@ -195,6 +195,137 @@ Limitar operaciones como el borrado a usuarios con permisos:
 ```javascript
 router.delete('/:id', authenticateUser, authorizeAdmin, async (req, res) => {
   // Implementación para eliminar una película
-});
+});openapi: 3.0.3
+info:
+  description: |-
+    My Card Game documentation
+  version: 1.0.0
+  title: Card Game
+tags:
+  - name: card
+    description: Everything about the Card Game
+paths:
+  /card:
+    get:
+      summary: GET all cards
+      description: GET all cards
+      responses:
+        "200":
+          description: "OK"
+          content:
+             application/json:
+              schema: 
+                $ref: '#/components/schemas/Cards'
+    post:
+      tags:
+        - card
+      summary: Add a new card to the game
+      description: Add a new card to the game
+      operationId: addCard
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '405':
+          description: Invalid input
+      requestBody:
+        description: Add a new card to the game
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Card'
+  /card/{cardId}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      tags:
+        - card
+      summary: Find card by ID
+      description: Returns a single card
+      operationId: getCardById
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Card'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Card not found
+    delete:
+      tags:
+        - card
+      summary: Deletes a card
+      description: ''
+      operationId: deleteCard
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid card ID
+  /deck:
+    post:
+      # TODO
+components:
+  parameters:
+    ID:
+      description: Card ID
+      name: cardId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+  schemas:
+    Cards:
+      type: object
+      properties:
+        results:
+          $ref: "#/components/schemas/CardsArray"
+        next:
+          type: string
+          description: Card next ID for pagination search
+      required:
+        - results
+        - next
+    CardsArray:
+      type: array
+      items:
+        $ref: "#/components/schemas/CardMin"
+    CardMin:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ID"
+        name:
+          type: string
+          description: Card name
+        type:
+          $ref: "#/components/schemas/Type"
+      required:
+        - _id
+        - name
+        - type
+    Card:
+      # TODO
+    Type:
+      type: string
+      enum: ["hero", "ally", "event"]
+      description: Card type
+    ID:
+      type: string
+      description: Card ID obtained from the database
+      example: 01001
+servers:
+  - url: localhost:3000/api/
+
 ```
 
