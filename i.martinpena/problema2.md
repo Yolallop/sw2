@@ -28,3 +28,4 @@ db.listingsAndReviews.aggregate([
 ```
 db.listingsAndReviews.find({ beds: { $in: [2, 3, 4, 5] } }).count()
 ```
+en la coleccion movies indique el titulo y el numero  de premios de la pelicula con mas premios (wins dentro de a
