@@ -22,6 +22,25 @@ db.listingsAndReviews.aggregate([
   { "$group": { _id: "$property_type", count: { "$sum": 1 } } }
 ])
 ```
+# Soluciones al problema 2
+
+## Apartado 1: En la coleccion movies indique el  titulo y el numero de premios de la pelicula con mas premios (wins dentro de awards)
+
+
+
+## Apartado 2: en la coleccion movies muestre un listado con las diferentes clasificaciones de edad que existes (rated). Para cada uno de ellos muestre el numero de documentos que tienen esa clasificacion
+
+
+
+
+## Apartado 3: en la coleccion movies muestre un listado con los diferentes generos de pelicula que existen (genres)
+
+
+
+## Apartado 4: en la coleccion movies indique el numero de peliculas que hay entre los años 1970 y 1975 incluidos ambos extremos
+
+
+
 
 ## Apartado 4
 
