@@ -1,0 +1,22 @@
+# Soluciones al problema 2
+
+## Apartado 1: Indicar el título y el número de premios de la película con más premios (wins dentro de awards).
+
+db.movies.find().sort({ "awards.wins": -1 }).limit(1).projection({ _id: 0, title: 1, "awards.wins": 1 })
+
+## Apartado 2: En la colección movies muestre un listado con las diferentes clasificaciones de edad que existen (rated). 
+Para cada uno de ellos muestre el número de documentos que tienen esa clasificación.
+
+db.movies.aggregate([
+  { $group: { _id: "$rated", count: { $sum: 1 } } }
+]);
+
+## Apartado 3: En la colección movies muestre un listado con los diferentes géneros de película que existen (genres).
+
+db.movies.distinct("genres");
+
+## Apartado 4: En la colección movies indique el número de películas que hay entre los años 1970 y 1975 incluidos ambos extremos.
+
+db.movies.countDocuments({
+  year: { $gte: 1970, $lte: 1975 }
+})
