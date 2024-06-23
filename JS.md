@@ -1296,3 +1296,256 @@ router.get('/search/multiple', async (req, res) => {
 ```
 
 Estas opciones adicionales deberían cubrir una amplia gama de posibilidades que podrían surgir en tu examen, permitiéndote estar preparado para cualquier tipo de pregunta relacionada con CRUD y consultas avanzadas en MongoDB.
+
+Lamentablemente, no tengo acceso a información específica sobre el contenido exacto del examen, pero basándome en el esquema y los temas que hemos cubierto, puedo ofrecerte más posibles escenarios y consideraciones que podrían aparecer en el examen de recuperación de Sistemas Web 2. Aquí tienes más ejemplos y posibilidades que podrían surgir:
+
+### Ejemplos Adicionales de Operaciones CRUD y Validaciones
+
+#### Creación de una ruta para actualizar cartas
+Podrían pedirte implementar una ruta para actualizar cartas en la colección. Aquí tienes un ejemplo:
+
+```javascript
+// updateCardById() - Actualizar carta por ID
+router.put('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { _id: req.params.id };
+  const update = { $set: req.body };
+
+  try {
+    const result = await dbConnect
+      .collection(COLLECTION)
+      .updateOne(query, update);
+    if (result.matchedCount === 0) {
+      return res.status(404).send('Card not found');
+    }
+    res.status(200).send(result);
+  } catch (err) {
+    res.status(400).send('Error updating card');
+  }
+});
+```
+
+### Validaciones en la creación y actualización de cartas
+Podrían pedirte implementar validaciones adicionales al crear o actualizar cartas. Aquí tienes algunos ejemplos de validaciones con `express-validator`:
+
+#### Validación avanzada al crear una carta
+```javascript
+const { body, validationResult } = require('express-validator');
+
+// addCard() con validaciones avanzadas
+router.post(
+  '/',
+  [
+    body('_id').isString().notEmpty(),
+    body('name').isString().notEmpty(),
+    body('type').isString().isIn(['hero', 'ally', 'event']),
+    body('hand_size').optional().isInt({ min: 1 }),
+    body('health').optional().isInt({ min: 0 }),
+    body('thwart').optional().isInt({ min: 0 }),
+    body('attack').optional().isInt({ min: 0 }),
+    body('defense').optional().isInt({ min: 0 }),
+    body('is_unique').optional().isBoolean(),
+    body('traits').optional().isArray().custom(traits => {
+      if (traits.length === 0) {
+        throw new Error('Traits cannot be empty');
+      }
+      return true;
+    }),
+    body('text').optional().isString().isLength({ max: 500 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const dbConnect = dbo.getDb();
+    try {
+      const result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+      res.status(201).send(result);
+    } catch (err) {
+      res.status(500).send('Error inserting card');
+    }
+  }
+);
+```
+
+### Manejo avanzado de errores
+Podrían pedirte que manejes distintos tipos de errores con códigos de estado específicos y mensajes claros. Aquí tienes un ejemplo:
+
+```javascript
+router.use((err, req, res, next) => {
+  if (err.name === 'ValidationError') {
+    return res.status(422).json({
+      errors: Object.values(err.errors).map(e => e.message)
+    });
+  }
+  if (err.code === 'ECONNREFUSED') {
+    return res.status(503).json({ message: 'External service unavailable' });
+  }
+  next(err);
+});
+```
+
+### Autenticación y Autorización
+Aunque no es común en todos los exámenes, podrían incluir alguna sección sobre autenticación y autorización. Aquí tienes un ejemplo de cómo proteger una ruta con autenticación básica usando JWT:
+
+#### Middleware de autenticación JWT
+```javascript
+const jwt = require('jsonwebtoken');
+
+const authenticateJWT = (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (token) {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).send('Forbidden');
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.status(401).send('Unauthorized');
+  }
+};
+```
+
+#### Uso del middleware de autenticación en una ruta
+```javascript
+// Ruta protegida por JWT
+router.get('/protected', authenticateJWT, (req, res) => {
+  res.send('This is a protected route');
+});
+```
+
+### Manejo de relaciones entre documentos
+Podrían pedirte manejar relaciones entre documentos, como agregar referencias de `deck` a `cards`:
+
+#### Crear una relación entre `deck` y `cards`
+```javascript
+router.post('/deck', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, description, hero, cards } = req.body;
+
+  // Verificar que el héroe sea de tipo 'hero'
+  const heroCard = await dbConnect.collection('cards').findOne({ _id: hero, type: 'hero' });
+  if (!heroCard) {
+    return res.status(400).send('Invalid hero ID or type');
+  }
+
+  // Verificar que las otras cartas no sean de tipo 'hero'
+  for (let cardId in cards) {
+    const card = await dbConnect.collection('cards').findOne({ _id: cardId });
+    if (!card || card.type === 'hero' || cards[cardId] > 3) {
+      return res.status(400).send('Invalid card in deck or too many copies');
+    }
+  }
+
+  // Crear el deck
+  try {
+    const result = await dbConnect.collection('decks').insertOne({ name, description, hero, cards });
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send('Error creating deck');
+  }
+});
+```
+
+### Consultas avanzadas con agregaciones
+Podrían pedirte realizar consultas avanzadas usando agregaciones. Aquí tienes un ejemplo para obtener estadísticas de las cartas:
+
+#### Obtener estadísticas de las cartas
+```javascript
+router.get('/cards/stats', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  try {
+    const stats = await dbConnect.collection(COLLECTION).aggregate([
+      {
+        $group: {
+          _id: "$type",
+          totalCards: { $sum: 1 },
+          averageHealth: { $avg: "$health" },
+          maxAttack: { $max: "$attack" }
+        }
+      }
+    ]).toArray();
+    res.json(stats).status(200);
+  } catch (err) {
+    res.status(500).send('Error fetching card stats');
+  }
+});
+```
+
+### Paginación y filtrado combinados
+Podrían pedirte implementar una combinación de paginación y filtrado en una sola ruta:
+
+#### Paginación y filtrado combinados
+```javascript
+router.get('/cards/filter', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let { page, limit, type, minHealth } = req.query;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+  const skip = (page - 1) * limit;
+  const query = {};
+
+  if (type) query.type = type;
+  if (minHealth) query.health = { $gte: parseInt(minHealth) };
+
+  try {
+    const results = await dbConnect.collection(COLLECTION)
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const total = await dbConnect.collection(COLLECTION).countDocuments(query);
+    res.json({ results, total, pages: Math.ceil(total / limit) }).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching filtered and paginated results');
+  }
+});
+```
+
+### Más ejemplos de validaciones con `express-validator`
+Podrían pedirte más ejemplos de validaciones, aquí tienes algunos:
+
+#### Validar formato de correo electrónico
+```javascript
+router.post(
+  '/validate-email',
+  [
+    body('email').isEmail().withMessage('Must be a valid email address'),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    res.send('Valid email');
+  }
+);
+```
+
+#### Validar fecha en formato específico
+```javascript
+router.post(
+  '/validate-date',
+  [
+    body('date').isISO8601().withMessage('Must be a valid date in ISO8601 format'),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    res.send('Valid date');
+  }
+);
+```
+
+### Otros posibles casos de uso
+1. **Implementar Soft Delete**: Podrían pedirte implementar una eliminación lógica en lugar de una eliminación física.
+2. **Upload de Archivos**: Podrían incluir el manejo de upload de archivos, por ejemplo, subir imágenes de cartas.
+3. **WebSocket**: Aunque menos probable, podrían incluir algún ejemplo de uso de WebSocket para actualizaciones en tiempo real.
+4. **Rate Limiting**: Implementar un sistema para limitar el número de solicitudes por usuario/IP.
+
+Con estos ejemplos adicionales, estarás bien preparado para enfrentar una variedad de preguntas y escenarios que podrían aparecer en tu examen. ¡Buena suerte!
