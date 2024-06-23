@@ -1,5 +1,3 @@
-Aquí tienes una lista exhaustiva y detallada de los tipos de parámetros que pueden aparecer en un archivo OpenAPI, junto con ejemplos JSON y su esquema correspondiente:
-
 ### 1. Path Parameters
 Path parameters son utilizados para identificar un recurso específico.
 
@@ -363,4 +361,755 @@ paths:
                   example: "john.doe@example.com"
 ```
 
-Estos ejemplos cubren una amplia gama de parámetros que puedes encontrar en un archivo OpenAPI, proporcionando tanto el ejemplo JSON como el esquema correspondiente para cada tipo. Si necesitas algún otro tipo de parámetro o funcionalidad específica, házmelo saber.
+Claro, aquí tienes ejemplos adicionales que incluyen validaciones más complejas, ejemplos de uso de parámetros combinados, y otros casos que podrías encontrarte al trabajar con OpenAPI:
+
+### 12. Pattern Parameters
+Pattern parameters utilizan expresiones regulares para restringir los valores aceptados.
+
+#### JSON:
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    post:
+      summary: Create a new user with email validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                  example: "user@example.com"
+```
+
+### 13. Date and Date-Time Parameters
+Date and Date-Time parameters utilizan formatos estándar para fechas y horas.
+
+#### JSON:
+```json
+{
+  "startDate": "2021-01-01",
+  "endDate": "2021-12-31"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /events:
+    get:
+      summary: Get events within a date range
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2021-01-01"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2021-12-31"
+```
+
+### 14. Number Range Parameters
+Number range parameters utilizan restricciones numéricas para definir límites.
+
+#### JSON:
+```json
+{
+  "minAge": 18,
+  "maxAge": 65
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users within an age range
+      parameters:
+        - name: minAge
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            example: 18
+        - name: maxAge
+          in: query
+          required: true
+          schema:
+            type: integer
+            maximum: 120
+            example: 65
+```
+
+### 15. Read-Only and Write-Only Properties
+Read-only and write-only properties se utilizan para controlar la visibilidad de los atributos en las solicitudes y respuestas.
+
+#### JSON:
+```json
+{
+  "id": "12345",
+  "password": "securepassword123"
+}
+```
+
+#### Schema:
+```yaml
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+          example: "12345"
+        password:
+          type: string
+          writeOnly: true
+          example: "securepassword123"
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+```
+
+### 16. Polymorphic Schemas (OneOf, AnyOf, AllOf)
+Polymorphic schemas se utilizan para definir esquemas que pueden ser de diferentes tipos.
+
+#### JSON:
+```json
+{
+  "id": "12345",
+  "name": "John Doe",
+  "role": "admin"
+}
+```
+
+#### Schema:
+```yaml
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "John Doe"
+        role:
+          type: string
+          example: "user"
+    Admin:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            role:
+              type: string
+              enum: ["admin"]
+              example: "admin"
+paths:
+  /users:
+    get:
+      summary: Get users or admins
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/Admin'
+```
+
+### 17. Nested Arrays and Objects
+Nested arrays and objects se utilizan para definir estructuras complejas de datos.
+
+#### JSON:
+```json
+{
+  "user": {
+    "name": "John Doe",
+    "addresses": [
+      {
+        "street": "123 Main St",
+        "city": "New York",
+        "state": "NY"
+      },
+      {
+        "street": "456 Elm St",
+        "city": "San Francisco",
+        "state": "CA"
+      }
+    ]
+  }
+}
+```
+
+#### Schema:
+```yaml
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "New York"
+        state:
+          type: string
+          example: "NY"
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+paths:
+  /users:
+    post:
+      summary: Create a new user with multiple addresses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+```
+
+### 18. Conditional (If/Then/Else) Validation
+Conditional validation se utiliza para aplicar reglas de validación condicionales.
+
+#### JSON:
+```json
+{
+  "type": "admin",
+  "adminCode": "ABC123"
+}
+```
+
+#### Schema:
+```yaml
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["user", "admin"]
+        adminCode:
+          type: string
+      if:
+        properties:
+          type:
+            const: "admin"
+      then:
+        required:
+          - adminCode
+      else:
+        not:
+          required:
+            - adminCode
+paths:
+  /users:
+    post:
+      summary: Create a new user with conditional validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+```
+
+### 19. Multipart File Upload with Additional Data
+Multipart file upload with additional data se utiliza para subir archivos junto con otros datos de formulario.
+
+#### JSON:
+```json
+{
+  "file": "<binary file data>",
+  "description": "Profile picture"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /upload:
+    post:
+      summary: Upload a file with additional data
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                description:
+                  type: string
+                  example: "Profile picture"
+      responses:
+        '201':
+          description: File uploaded
+```
+
+### 20. Content Negotiation
+Content negotiation se utiliza para soportar múltiples formatos de respuesta.
+
+#### JSON:
+```json
+{
+  "id": "12345",
+  "name": "John Doe"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users/{userId}:
+    get:
+      summary: Get a user by ID with content negotiation
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "12345"
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "John Doe"
+```
+
+### 21. Pagination with Links
+Pagination with links se utiliza para devolver datos paginados con enlaces a las páginas siguientes y anteriores.
+
+#### JSON:
+```json
+{
+  "results": [
+    {"id": "1", "name": "Item 1"},
+    {"id": "2", "name": "Item 2"}
+  ],
+  "links": {
+    "next": "/items?offset=2&limit=2",
+    "prev": "/items?offset=0&limit=2"
+  }
+}
+```
+
+#### Schema:
+```yaml
+components:
+  schemas:
+    PaginatedItems:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+        links:
+          type: object
+          properties:
+        next:
+          type: string
+          example: “/items?offset=2&limit=2”
+        prev:
+          type: string
+          example: “/items?offset=0&limit=2”
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+          example: “1”
+        name:
+          type: string
+          example: “Item 1”
+  paths:
+    /items:
+      get:
+        summary: Get paginated items
+        parameters:
+        - name: limit
+        in: query
+        required: false
+      schema:
+        type: integer
+        example: 2
+        - name: offset
+        in: query
+        required: false
+      schema:
+        type: integer
+        example: 0
+        responses:
+      ‘200’:
+        description: successful operation
+        content:
+          application/json:
+            schema:
+              $ref: ‘#/components/schemas/PaginatedItems’
+```
+
+:
+            next:
+              type: string
+              example: "/items?offset=2&limit=2"
+            prev:
+              type: string
+              example: "/items?offset=0&limit=2"
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "Item 1"
+paths:
+  /items:
+    get:
+      summary: Get paginated items
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 2
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedItems'
+```
+
+### 22. Deep Object Parameters
+Deep object parameters se utilizan para enviar objetos anidados en la URL.
+
+#### JSON:
+```json
+{
+  "filter": {
+    "type": "admin",
+    "status": "active"
+  }
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users with deep object filtering
+      parameters:
+        - name: filter
+          in: query
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+              status:
+                type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "John Doe"
+```
+
+### 23. Combinations of Parameters
+Combinations of parameters se utilizan para pasar múltiples tipos de parámetros en una sola operación.
+
+#### JSON:
+```json
+{
+  "userId": "12345",
+  "limit": 10,
+  "X-Request-ID": "abcd-1234",
+  "session_id": "xyz-12345",
+  "name": "John Doe",
+  "email": "john.doe@example.com"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users/{userId}:
+    post:
+      summary: Example of mixed parameters
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "12345"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 10
+        - name: X-Request-ID
+          in: header
+          required: false
+          schema:
+            type: string
+            example: "abcd-1234"
+        - name: session_id
+          in: cookie
+          required: false
+          schema:
+            type: string
+            example: "xyz-12345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john.doe@example.com"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "12345"
+                  name:
+                    type: string
+                    example: "John Doe"
+```
+
+### 24. Rate Limiting Headers
+Rate limiting headers se utilizan para informar al cliente sobre el uso de la cuota de la API.
+
+#### JSON:
+```json
+{
+  "X-Rate-Limit-Limit": "60",
+  "X-Rate-Limit-Remaining": "57",
+  "X-Rate-Limit-Reset": "1377013266"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users with rate limiting headers
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-Rate-Limit-Limit:
+              description: The number of allowed requests in the current period
+              schema:
+                type: integer
+                example: 60
+            X-Rate-Limit-Remaining:
+              description: The number of remaining requests in the current period
+              schema:
+                type: integer
+                example: 57
+            X-Rate-Limit-Reset:
+              description: The time at which the current rate limit window resets in UTC epoch seconds
+              schema:
+                type: integer
+                example: 1377013266
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "John Doe"
+```
+
+### 25. ETag Headers for Caching
+ETag headers se utilizan para la gestión de la caché.
+
+#### JSON:
+```json
+{
+  "ETag": "W/\"123456789\""
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users/{userId}:
+    get:
+      summary: Get a user by ID with ETag
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "12345"
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            ETag:
+              description: Entity tag for the requested resource
+              schema:
+                type: string
+                example: "W/\"123456789\""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "John Doe"
+```
+
+Estos ejemplos incluyen una variedad de complejidades adicionales que pueden surgir en un archivo OpenAPI. Cubren desde validaciones condicionales y parámetros combinados hasta el manejo de encabezados para la limitación de tasas y la gestión de caché. Esto debería proporcionarte una base sólida para manejar una amplia gama de escenarios en tu examen.
+
+
+
