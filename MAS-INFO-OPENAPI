@@ -1,0 +1,366 @@
+Aquí tienes una lista exhaustiva y detallada de los tipos de parámetros que pueden aparecer en un archivo OpenAPI, junto con ejemplos JSON y su esquema correspondiente:
+
+### 1. Path Parameters
+Path parameters son utilizados para identificar un recurso específico.
+
+#### JSON:
+```json
+{
+  "userId": "12345"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users/{userId}:
+    get:
+      summary: Get a user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "12345"
+```
+
+### 2. Query Parameters
+Query parameters son utilizados para filtrar y paginar datos.
+
+#### JSON:
+```json
+{
+  "limit": 10,
+  "offset": 0
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users with pagination
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return
+          required: false
+          schema:
+            type: integer
+            example: 10
+        - name: offset
+          in: query
+          description: Offset for pagination
+          required: false
+          schema:
+            type: integer
+            example: 0
+```
+
+### 3. Header Parameters
+Header parameters son utilizados para pasar metadatos sobre la solicitud o la respuesta.
+
+#### JSON:
+```json
+{
+  "X-Request-ID": "abcd-1234"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users with custom header
+      parameters:
+        - name: X-Request-ID
+          in: header
+          required: false
+          schema:
+            type: string
+            example: "abcd-1234"
+```
+
+### 4. Cookie Parameters
+Cookie parameters son utilizados para pasar datos mediante cookies.
+
+#### JSON:
+```json
+{
+  "session_id": "xyz-12345"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users with session cookie
+      parameters:
+        - name: session_id
+          in: cookie
+          required: false
+          schema:
+            type: string
+            example: "xyz-12345"
+```
+
+### 5. Request Body Parameters
+Request body parameters son utilizados para pasar datos complejos a través del cuerpo de la solicitud.
+
+#### JSON:
+```json
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john.doe@example.com"
+```
+
+### 6. Form Data Parameters
+Form data parameters son utilizados para enviar datos de formulario.
+
+#### JSON:
+```json
+{
+  "username": "johndoe",
+  "password": "securepassword123"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "johndoe"
+                password:
+                  type: string
+                  example: "securepassword123"
+```
+
+### 7. Array Parameters
+Array parameters son utilizados para enviar múltiples valores para un solo campo.
+
+#### JSON:
+```json
+{
+  "tags": ["tag1", "tag2", "tag3"]
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /items:
+    get:
+      summary: Get items by tags
+      parameters:
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+            example: ["tag1", "tag2", "tag3"]
+```
+
+### 8. File Upload Parameters
+File upload parameters son utilizados para enviar archivos en la solicitud.
+
+#### JSON:
+```json
+{
+  "file": "<binary file data>"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /upload:
+    post:
+      summary: Upload a file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+```
+
+### 9. Enum Parameters
+Enum parameters son utilizados para restringir los valores posibles de un parámetro.
+
+#### JSON:
+```json
+{
+  "status": "active"
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    get:
+      summary: Get users by status
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["active", "inactive", "banned"]
+            example: "active"
+```
+
+### 10. Nested Object Parameters
+Nested object parameters son utilizados para enviar datos jerárquicos en una sola solicitud.
+
+#### JSON:
+```json
+{
+  "user": {
+    "name": "John Doe",
+    "contact": {
+      "email": "john.doe@example.com",
+      "phone": "123-456-7890"
+    }
+  }
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users:
+    post:
+      summary: Create a new user with nested contact information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: "John Doe"
+                    contact:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                          example: "john.doe@example.com"
+                        phone:
+                          type: string
+                          example: "123-456-7890"
+```
+
+### 11. Mixed Parameters
+Mixed parameters combinan varios tipos de parámetros en una sola operación.
+
+#### JSON:
+```json
+{
+  "pathParam": "12345",
+  "queryParam": "value",
+  "headerParam": "abcd-1234",
+  "cookieParam": "xyz-12345",
+  "bodyParam": {
+    "name": "John Doe",
+    "email": "john.doe@example.com"
+  }
+}
+```
+
+#### Schema:
+```yaml
+paths:
+  /users/{pathParam}:
+    post:
+      summary: Example of mixed parameters
+      parameters:
+        - name: pathParam
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "12345"
+        - name: queryParam
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "value"
+        - name: headerParam
+          in: header
+          required: false
+          schema:
+            type: string
+            example: "abcd-1234"
+        - name: cookieParam
+          in: cookie
+          required: false
+          schema:
+            type: string
+            example: "xyz-12345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                email:
+                  type: string
+                  example: "john.doe@example.com"
+```
+
+Estos ejemplos cubren una amplia gama de parámetros que puedes encontrar en un archivo OpenAPI, proporcionando tanto el ejemplo JSON como el esquema correspondiente para cada tipo. Si necesitas algún otro tipo de parámetro o funcionalidad específica, házmelo saber.
