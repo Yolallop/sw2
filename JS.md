@@ -1927,3 +1927,754 @@ router.post('/deck', async (req, res) => {
 ```
 
 Recuerda siempre abordar tu examen con honestidad y esfuerzo. La práctica y la preparación son las claves para tener éxito. ¡Buena suerte!
+
+
+No puedo ayudarte con la obtención no autorizada de acceso a sistemas o repositorios. Sin embargo, puedo ofrecerte una guía detallada para preparar tus exámenes basándome en el contenido que has compartido y en las prácticas habituales de desarrollo de APIs y bases de datos.
+
+Aquí tienes un enfoque paso a paso para los temas que podrían surgir en tu examen de recuperación:
+
+### 1. CRUD Operations en Node.js
+
+#### 1.1. Estructura básica de un servidor Express con MongoDB
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const MAX_RESULTS = parseInt(process.env.MAX_RESULTS);
+const COLLECTION = 'cards';
+
+// Obtener todas las cartas
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let limit = req.query.limit ? Math.min(parseInt(req.query.limit), MAX_RESULTS) : MAX_RESULTS;
+  let next = req.query.next;
+  let query = next ? { _id: { $lt: next } } : {};
+  let results = await dbConnect.collection(COLLECTION).find(query).limit(limit).toArray();
+  next = results.length === limit ? results[results.length - 1]._id : null;
+  res.json({ results, next }).status(200);
+});
+
+// Obtener carta por ID
+router.get('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { _id: req.params.id };
+  let result = await dbConnect.collection(COLLECTION).findOne(query);
+  result ? res.status(200).send(result) : res.status(404).send("Not found");
+});
+
+// Agregar nueva carta
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+  res.status(201).send(result);
+});
+
+// Eliminar carta por ID
+router.delete('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { _id: req.params.id };
+  let result = await dbConnect.collection(COLLECTION).deleteOne(query);
+  res.status(200).send(result);
+});
+
+module.exports = router;
+```
+
+#### 1.2. Filtrar cartas por tipo
+
+```javascript
+// Filtrar cartas por tipo
+router.get('/type/:type', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { type: req.params.type };
+  let results = await dbConnect.collection(COLLECTION).find(query).toArray();
+  res.json(results).status(200);
+});
+```
+
+### 2. Paginación
+
+#### 2.1. Implementar paginación
+
+```javascript
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let limit = req.query.limit ? Math.min(parseInt(req.query.limit), MAX_RESULTS) : MAX_RESULTS;
+  let next = req.query.next;
+  let query = next ? { _id: { $lt: next } } : {};
+  let results = await dbConnect.collection(COLLECTION).find(query).limit(limit).toArray();
+  next = results.length === limit ? results[results.length - 1]._id : null;
+  res.json({ results, next }).status(200);
+});
+```
+
+### 3. Validaciones en el servidor
+
+#### 3.1. Validación de entradas
+
+```javascript
+// Agregar nueva carta con validación
+router.post('/', async (req, res) => {
+  const { _id, name, type, text, hand_size, health, thwart, attack, defense, is_unique, traits } = req.body;
+
+  if (!_id || !name || !type || !text) {
+    return res.status(400).send({ code: 1, message: "Invalid input" });
+  }
+
+  const dbConnect = dbo.getDb();
+  let result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+  res.status(201).send(result);
+});
+```
+
+### 4. Errores personalizados
+
+#### 4.1. Manejo de errores en respuestas
+
+```javascript
+router.get('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { _id: req.params.id };
+  let result = await dbConnect.collection(COLLECTION).findOne(query);
+  if (!result) {
+    res.status(404).send({ code: 4, message: "Card not found" });
+  } else {
+    res.status(200).send(result);
+  }
+});
+```
+
+### 5. OpenAPI Specification
+
+#### 5.1. Especificación básica para la API de cartas
+
+```yaml
+openapi: 3.0.3
+info:
+  description: >-
+    My Card Game documentation.
+    This API allows users to manage cards and decks for a superhero card game.
+  version: 1.0.0
+  title: Card Game
+tags:
+  - name: card
+    description: Everything about the Card Game
+  - name: deck
+    description: Everything about Decks
+paths:
+  /cards:
+    get:
+      summary: GET all cards
+      description: Retrieve all cards in the game with optional pagination.
+      parameters:
+        - name: limit
+          in: query
+          description: Number of cards to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+        - name: offset
+          in: query
+          description: Offset for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 0
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Cards'
+  /cards/type/{type}:
+    get:
+      summary: Filter cards by type
+      description: Returns cards filtered by their type.
+      parameters:
+        - name: type
+          in: path
+          description: Type of card to filter by
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cards'
+        '400':
+          description: Invalid type supplied
+components:
+  schemas:
+    Cards:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+        next:
+          type: string
+          description: Next ID for pagination
+      required:
+        - results
+    Card:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique ID for the card
+        name:
+          type: string
+          description: Name of the card
+        type:
+          type: string
+          description: Type of the card
+        text:
+          type: string
+          description: Description of the card
+        hand_size:
+          type: integer
+          description: Hand size of the card
+        health:
+          type: integer
+          description: Health points of the card
+        thwart:
+          type: integer
+          description: Thwart points of the card
+        attack:
+          type: integer
+          description: Attack points of the card
+        defense:
+          type: integer
+          description: Defense points of the card
+        is_unique:
+          type: boolean
+          description: Whether the card is unique
+        traits:
+          type: array
+          items:
+            type: string
+          description: Traits of the card
+      required:
+        - _id
+        - name
+        - type
+        - text
+```
+
+### Conclusión
+
+La clave para tu examen será comprender cómo construir y manipular una API RESTful usando Express.js y MongoDB. Familiarízate con los conceptos de CRUD, validaciones, manejo de errores, paginación y especificación OpenAPI. Practica la implementación de estos conceptos en proyectos pequeños para consolidar tus conocimientos y estar preparado para cualquier pregunta que pueda surgir en el examen.
+
+Lamento mucho que te sientas así. Mi objetivo es ayudarte lo mejor posible dentro de los límites éticos y legales. Puedo ofrecerte algunos consejos adicionales para prepararte mejor:
+
+### Consejos Adicionales para Prepararte para el Examen
+
+1. **Revisa Ejemplos Anteriores**:
+   - Revisa ejemplos de exámenes pasados si están disponibles.
+   - Practica resolviendo problemas similares a los que has encontrado en el examen ordinario.
+
+2. **Práctica, Práctica y Más Práctica**:
+   - Desarrolla pequeños proyectos que incluyan CRUD, validaciones y paginación.
+   - Utiliza herramientas como Postman para probar tu API y asegurarte de que funciona correctamente.
+
+3. **Domina la Especificación OpenAPI**:
+   - Asegúrate de entender cómo escribir y leer especificaciones OpenAPI.
+   - Practica modificando especificaciones existentes para que coincidan con los requisitos de diferentes problemas.
+
+4. **Refuerza tus Conocimientos en MongoDB**:
+   - Practica consultas avanzadas y operaciones de agregación.
+   - Asegúrate de comprender cómo utilizar operadores de consulta y agregación en MongoDB.
+
+5. **Entiende el Manejo de Errores**:
+   - Asegúrate de que sabes cómo manejar errores en tu API y devolver mensajes de error adecuados.
+   - Practica la creación de middleware de manejo de errores en Express.js.
+
+### Ejemplo Completo para CRUD y Paginación en Express.js
+
+Aquí tienes un ejemplo completo de cómo podrías estructurar un archivo `cards.js` para manejar CRUD y paginación:
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const MAX_RESULTS = 10;
+const COLLECTION = 'cards';
+
+// Obtener todas las cartas con paginación
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let limit = req.query.limit ? Math.min(parseInt(req.query.limit), MAX_RESULTS) : MAX_RESULTS;
+  let next = req.query.next;
+  let query = next ? { _id: { $lt: new ObjectId(next) } } : {};
+
+  try {
+    let results = await dbConnect.collection(COLLECTION).find(query).limit(limit).toArray();
+    next = results.length === limit ? results[results.length - 1]._id : null;
+    res.status(200).json({ results, next });
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards" });
+  }
+});
+
+// Obtener carta por ID
+router.get('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    let result = await dbConnect.collection(COLLECTION).findOne(query);
+    if (!result) {
+      res.status(404).json({ code: 4, message: "Card not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching card by ID" });
+  }
+});
+
+// Agregar nueva carta
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { _id, name, type, text, hand_size, health, thwart, attack, defense, is_unique, traits } = req.body;
+
+  if (!_id || !name || !type || !text) {
+    return res.status(400).json({ code: 1, message: "Invalid input" });
+  }
+
+  try {
+    let result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error adding card" });
+  }
+});
+
+// Eliminar carta por ID
+router.delete('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    let result = await dbConnect.collection(COLLECTION).deleteOne(query);
+    if (result.deletedCount === 0) {
+      res.status(404).json({ code: 4, message: "Card not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error deleting card" });
+  }
+});
+
+// Filtrar cartas por tipo
+router.get('/type/:type', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let query = { type: req.params.type };
+
+  try {
+    let results = await dbConnect.collection(COLLECTION).find(query).toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards by type" });
+  }
+});
+
+module.exports = router;
+```
+
+### Preparación Adicional
+
+1. **Estudia Casos de Uso Reales**:
+   - Practica con casos de uso reales, como la creación de endpoints adicionales, validaciones complejas y manejo de errores personalizados.
+
+2. **Simula el Examen**:
+   - Intenta resolver problemas sin mirar las respuestas para simular el entorno del examen.
+   - Cronometra tus respuestas para mejorar tu gestión del tiempo.
+
+3. **Participa en Foros y Grupos de Estudio**:
+   - Únete a foros y grupos de estudio para discutir problemas y soluciones con tus compañeros.
+
+4. **Mantén la Calma y Confía en Ti Mismo**:
+   - La práctica constante y la preparación te ayudarán a ganar confianza.
+   - Mantén una actitud positiva y trata de relajarte antes del examen.
+
+Espero que estos consejos y ejemplos te ayuden a sentirte más preparado para tu examen. ¡Buena suerte!a
+
+Lamento mucho que te sientas frustrado. Mi objetivo es proporcionarte la mejor ayuda posible dentro de los límites éticos y legales. Puedo ofrecerte más ejemplos y posibles preguntas basadas en lo que hemos discutido y en el formato de los exámenes anteriores.
+
+### Ejemplo Adicional Basado en el Formato del Examen
+
+#### CRUD Operaciones para "Cards" y "Decks"
+
+Este ejemplo es una ampliación de lo que hemos discutido anteriormente y se enfoca en las operaciones CRUD y la validación adicional que podrías necesitar para tu examen.
+
+### Archivo `cards.js`
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const COLLECTION = 'cards';
+
+// Obtener todas las cartas
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = parseInt(req.query.skip) || 0;
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({})
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards" });
+  }
+});
+
+// Obtener carta por ID
+router.get('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).findOne(query);
+    if (!result) {
+      res.status(404).json({ code: 4, message: "Card not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching card by ID" });
+  }
+});
+
+// Agregar nueva carta
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const card = req.body;
+
+  if (!card._id || !card.name || !card.type || !card.text) {
+    return res.status(400).json({ code: 1, message: "Invalid input" });
+  }
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).insertOne(card);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error adding card" });
+  }
+});
+
+// Eliminar carta por ID
+router.delete('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).deleteOne(query);
+    if (result.deletedCount === 0) {
+      res.status(404).json({ code: 4, message: "Card not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error deleting card" });
+  }
+});
+
+// Filtrar cartas por tipo
+router.get('/type/:type', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { type: req.params.type };
+
+  try {
+    const results = await dbConnect.collection(COLLECTION).find(query).toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards by type" });
+  }
+});
+
+module.exports = router;
+```
+
+### Archivo `decks.js`
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const COLLECTION = 'decks';
+
+// Obtener todos los mazos
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = parseInt(req.query.skip) || 0;
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({})
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching decks" });
+  }
+});
+
+// Obtener mazo por ID
+router.get('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).findOne(query);
+    if (!result) {
+      res.status(404).json({ code: 4, message: "Deck not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching deck by ID" });
+  }
+});
+
+// Agregar nuevo mazo
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const deck = req.body;
+
+  if (!deck.name || !deck.description || !deck.hero || !deck.cards) {
+    return res.status(400).json({ code: 1, message: "Invalid input" });
+  }
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).insertOne(deck);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error adding deck" });
+  }
+});
+
+// Eliminar mazo por ID
+router.delete('/:id', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { _id: new ObjectId(req.params.id) };
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).deleteOne(query);
+    if (result.deletedCount === 0) {
+      res.status(404).json({ code: 4, message: "Deck not found" });
+    } else {
+      res.status(200).json(result);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error deleting deck" });
+  }
+});
+
+module.exports = router;
+```
+
+### Validaciones Adicionales
+
+Para asegurar que los datos cumplan con ciertos requisitos antes de insertarlos o actualizarlos, puedes agregar validaciones en los controladores. Aquí tienes un ejemplo de cómo podrías validar un mazo antes de insertarlo:
+
+```javascript
+// Validar mazo antes de insertarlo
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const deck = req.body;
+
+  if (!deck.name || !deck.description || !deck.hero || !deck.cards) {
+    return res.status(400).json({ code: 1, message: "Invalid input" });
+  }
+
+  // Validar que hero sea una carta de tipo 'hero'
+  const heroCard = await dbConnect.collection('cards').findOne({ _id: deck.hero, type: 'hero' });
+  if (!heroCard) {
+    return res.status(400).json({ code: 1, message: "Invalid hero card" });
+  }
+
+  // Validar que ninguna carta en cards sea de tipo 'hero' y que no haya más de 3 copias de una misma carta
+  for (const [cardId, count] of Object.entries(deck.cards)) {
+    if (count > 3) {
+      return res.status(400).json({ code: 1, message: `Too many copies of card ${cardId}` });
+    }
+    const card = await dbConnect.collection('cards').findOne({ _id: cardId });
+    if (!card || card.type === 'hero') {
+      return res.status(400).json({ code: 1, message: `Invalid card ${cardId} in deck` });
+    }
+  }
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).insertOne(deck);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error adding deck" });
+  }
+});
+```
+
+### Consejos para el Examen
+
+1. **Revisa Exámenes Pasados**: Si tienes acceso a exámenes anteriores, estúdialos para identificar patrones en las preguntas.
+2. **Practica**: Realiza ejercicios prácticos similares a los que podrías encontrar en el examen.
+3. **Comprende las Validaciones**: Asegúrate de entender cómo funcionan las validaciones y cómo aplicarlas.
+4. **Simula el Examen**: Realiza simulaciones del examen para familiarizarte con el formato y el tiempo.
+5. **Consulta la Documentación**: Revisa la documentación oficial de las herramientas y tecnologías que estás utilizando.
+
+Espero que esto te sea útil y te ayude a prepararte mejor para tu examen. ¡Buena suerte!
+
+Entiendo tu frustración y lamento que te sientas así. Sin embargo, no tengo la capacidad de acceder a información confidencial sobre exámenes o cualquier otro contenido protegido sin autorización. Mi propósito es ayudarte de manera ética y dentro de las reglas y regulaciones.
+
+Dicho esto, puedo ofrecerte ejemplos adicionales y consejos sobre cómo abordar posibles preguntas basadas en el formato que hemos discutido. Aquí tienes más ejemplos que podrían ayudarte a estar mejor preparado para tu examen.
+
+### Más Ejemplos de Operaciones CRUD y Validaciones en una API REST
+
+#### Filtrar Cartas por Nombre con Validación
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const COLLECTION = 'cards';
+
+// Filtrar cartas por nombre
+router.get('/name/:name', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const name = req.params.name;
+
+  try {
+    const results = await dbConnect.collection(COLLECTION).find({ name: { $regex: new RegExp(name, 'i') } }).toArray();
+    if (results.length === 0) {
+      res.status(404).json({ code: 4, message: "No cards found with that name" });
+    } else {
+      res.status(200).json(results);
+    }
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards by name" });
+  }
+});
+
+module.exports = router;
+```
+
+### Rutas de la API con Paginación
+
+#### Obtener Cartas con Paginación
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const COLLECTION = 'cards';
+
+// Obtener todas las cartas con paginación
+router.get('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * limit;
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({})
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const total = await dbConnect.collection(COLLECTION).countDocuments();
+    res.status(200).json({
+      results,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error fetching cards with pagination" });
+  }
+});
+
+module.exports = router;
+```
+
+### Operaciones Avanzadas con Validaciones
+
+#### Crear un Deck con Validaciones Complejas
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const COLLECTION = 'decks';
+
+// Agregar nuevo mazo con validaciones
+router.post('/', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const deck = req.body;
+
+  if (!deck.name || !deck.description || !deck.hero || !deck.cards) {
+    return res.status(400).json({ code: 1, message: "Invalid input" });
+  }
+
+  // Validar que hero sea una carta de tipo 'hero'
+  const heroCard = await dbConnect.collection('cards').findOne({ _id: deck.hero, type: 'hero' });
+  if (!heroCard) {
+    return res.status(400).json({ code: 1, message: "Invalid hero card" });
+  }
+
+  // Validar que ninguna carta en cards sea de tipo 'hero' y que no haya más de 3 copias de una misma carta
+  for (const [cardId, count] of Object.entries(deck.cards)) {
+    if (count > 3) {
+      return res.status(400).json({ code: 1, message: `Too many copies of card ${cardId}` });
+    }
+    const card = await dbConnect.collection('cards').findOne({ _id: cardId });
+    if (!card || card.type === 'hero') {
+      return res.status(400).json({ code: 1, message: `Invalid card ${cardId} in deck` });
+    }
+  }
+
+  try {
+    const result = await dbConnect.collection(COLLECTION).insertOne(deck);
+    res.status(201).json(result);
+  } catch (err) {
+    res.status(500).json({ code: 5, message: "Error adding deck" });
+  }
+});
+
+module.exports = router;
+```
+
+### Consejos Adicionales para el Examen
+
+1. **Validaciones de Entrada**: Asegúrate de realizar validaciones adecuadas en todas las rutas para prevenir la inserción de datos inválidos.
+2. **Manejo de Errores**: Implementa un manejo de errores robusto para proporcionar mensajes claros y útiles a los usuarios de la API.
+3. **Documentación**: Utiliza herramientas como Swagger para documentar tu API y facilitar la comprensión de cómo usarla.
+4. **Optimización de Consultas**: Asegúrate de que las consultas a la base de datos estén optimizadas, especialmente cuando trabajes con grandes volúmenes de datos.
+5. **Pruebas**: Realiza pruebas exhaustivas de tu API utilizando herramientas como Postman para asegurarte de que todas las rutas y funcionalidades están funcionando correctamente.
+
+Estos ejemplos y consejos adicionales deberían ayudarte a prepararte mejor para tu examen. ¡Buena suerte!
