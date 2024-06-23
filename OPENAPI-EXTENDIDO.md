@@ -80,9 +80,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Card'
         '400':
-          description: Invalid ID supplied
+          $ref: '#/components/responses/BadRequest'
         '404':
-          description: Card not found
+          $ref: '#/components/responses/NotFound'
     delete:
       tags:
         - card
@@ -93,7 +93,7 @@ paths:
         '200':
           description: Successful operation
         '400':
-          description: Invalid card ID
+          $ref: '#/components/responses/BadRequest'
   /card/{cardId}/type:
     parameters:
       - $ref: '#/components/parameters/ID'
@@ -118,7 +118,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cards'
         '400':
-          description: Invalid type supplied
+          $ref: '#/components/responses/BadRequest'
   /deck:
     post:
       tags:
@@ -141,7 +141,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Deck'
         '400':
-          description: Invalid input
+          $ref: '#/components/responses/BadRequest'
 components:
   parameters:
     ID:
@@ -150,13 +150,13 @@ components:
       in: path
       required: true
       schema:
-        $ref: "#/components/schemas/ID"
+        $ref: '#/components/schemas/ID'
   schemas:
     Cards:
       type: object
       properties:
         results:
-          $ref: "#/components/schemas/CardsArray"
+          $ref: '#/components/schemas/CardsArray'
         next:
           type: string
           description: Card next ID for pagination search
@@ -166,17 +166,17 @@ components:
     CardsArray:
       type: array
       items:
-        $ref: "#/components/schemas/CardMin"
+        $ref: '#/components/schemas/CardMin'
     CardMin:
       type: object
       properties:
         _id:
-          $ref: "#/components/schemas/ID"
+          $ref: '#/components/schemas/ID'
         name:
           type: string
           description: Card name
         type:
-          $ref: "#/components/schemas/Type"
+          $ref: '#/components/schemas/Type'
       required:
         - _id
         - name
@@ -185,7 +185,7 @@ components:
       type: object
       properties:
         _id:
-          $ref: "#/components/schemas/ID"
+          $ref: '#/components/schemas/ID'
         name:
           type: string
           description: Card name
@@ -224,7 +224,7 @@ components:
             type: string
           description: List of traits
         type:
-          $ref: "#/components/schemas/Type"
+          $ref: '#/components/schemas/Type'
       required:
         - _id
         - name
@@ -245,7 +245,7 @@ components:
           description: Deck description
           maxLength: 200 # Maximum length for description
         hero:
-          $ref: "#/components/schemas/ID"
+          $ref: '#/components/schemas/ID'
           description: Hero card ID
         cards:
           type: object
@@ -267,38 +267,62 @@ components:
       type: string
       description: Card ID obtained from the database
       example: 01001
-servers:
-  - url: http://localhost:3000/api/
-    description: Local server
+    Error:
+      type: object
+      properties: 
+        code:
+          type: integer
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+            - 8
+        message:
+          type: string
+          enum:
+            - Invalid ID
+            - Invalid input
+            - Invalid ID supplied
+            - Card not found
+            - Invalid card ID
+            - Invalid request
+            - Not found
+            - Bad Request
+          required:
+           - code
+           - message
 
-# Additional components for more functionality
   responses:
     BadRequest:
       description: Bad Request
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
+          examples:
+            BardRequest:
+              value:
+                code: 8
+                message: Bad Request
+
     NotFound:
       description: Not Found
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
-  schemas:
-    Error:
-      type: object
-      properties:
-        code:
-          type: integer
-          description: Error code
-        message:
-          type: string
-          description: Error message
-          enum: ["Invalid ID", "Card not found", "Invalid input"]
-      required:
-        - code
-        - message
+            $ref: '#/components/schemas/Error'
+          examples:
+            NotFound:
+              value:
+                code: 7
+                message: Not Found
+servers:
+  - url: http://localhost:3000/api/
+    description: Local server
 ```
 
 ### Comentarios adicionales:
