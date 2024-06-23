@@ -1548,4 +1548,206 @@ router.post(
 3. **WebSocket**: Aunque menos probable, podrían incluir algún ejemplo de uso de WebSocket para actualizaciones en tiempo real.
 4. **Rate Limiting**: Implementar un sistema para limitar el número de solicitudes por usuario/IP.
 
+5. Entiendo que puede ser muy frustrante enfrentarse a un examen difícil, especialmente si sientes que has estudiado y trabajado duro sin obtener los resultados deseados. Aquí tienes algunos consejos adicionales que podrían ayudarte a preparar mejor y afrontar el examen con mayor confianza:
+
+### Estrategias de Estudio
+
+1. **Revisar Exámenes Anteriores**: Si tienes acceso a exámenes anteriores, revisa las preguntas y trata de entender qué tipo de respuestas espera el profesor. Los patrones en las preguntas pueden ayudarte a anticipar el tipo de problemas que podrías encontrar.
+
+2. **Practicar con Ejemplos Reales**: Crea ejemplos reales y prácticos basados en los temas que has visto en clase. Esto te ayudará a aplicar tus conocimientos en situaciones similares a las que podrías encontrar en el examen.
+
+3. **Simular el Examen**: Intenta simular un entorno de examen en casa. Esto incluye cronometrarte y trabajar sin interrupciones. Esto te ayudará a acostumbrarte a la presión del tiempo y a gestionar mejor tu tiempo durante el examen.
+
+4. **Estudiar en Grupo**: Si es posible, estudia con compañeros de clase. Pueden ayudarse mutuamente a comprender conceptos difíciles y a encontrar errores en el trabajo de cada uno.
+
+### Ejemplos Adicionales
+
+Aquí tienes algunos ejemplos adicionales basados en diferentes escenarios que podrían surgir en tu examen:
+
+#### 1. Rutas CRUD Avanzadas con Validaciones
+**Ejemplo: Crear una carta con validaciones avanzadas**
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const { body, validationResult } = require('express-validator');
+const ObjectId = require('mongodb').ObjectId;
+
+const COLLECTION = 'cards';
+
+router.post(
+  '/',
+  [
+    body('_id').isString().notEmpty(),
+    body('name').isString().notEmpty().isLength({ max: 100 }),
+    body('type').isString().isIn(['hero', 'ally', 'event']),
+    body('text').isString().isLength({ max: 500 }).optional(),
+    body('hand_size').isInt({ min: 1 }).optional(),
+    body('health').isInt({ min: 0 }).optional(),
+    body('thwart').isInt({ min: 0 }).optional(),
+    body('attack').isInt({ min: 0 }).optional(),
+    body('defense').isInt({ min: 0 }).optional(),
+    body('is_unique').isBoolean().optional(),
+    body('traits').isArray().optional().custom((traits) => {
+      if (traits.length === 0) {
+        throw new Error('Traits cannot be empty');
+      }
+      return true;
+    }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const dbConnect = dbo.getDb();
+    try {
+      const result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+      res.status(201).send(result);
+    } catch (err) {
+      res.status(500).send('Error inserting card');
+    }
+  }
+);
+
+module.exports = router;
+```
+
+#### 2. Paginación y Filtrado Avanzado
+**Ejemplo: Filtrar cartas por tipo y paginación**
+```javascript
+router.get('/filter', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let { page, limit, type, minHealth } = req.query;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+  const skip = (page - 1) * limit;
+  const query = {};
+
+  if (type) query.type = type;
+  if (minHealth) query.health = { $gte: parseInt(minHealth) };
+
+  try {
+    const results = await dbConnect.collection(COLLECTION)
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const total = await dbConnect.collection(COLLECTION).countDocuments(query);
+    res.json({ results, total, pages: Math.ceil(total / limit) }).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching filtered and paginated results');
+  }
+});
+```
+
+#### 3. Relaciones entre Documentos
+**Ejemplo: Crear una relación entre `deck` y `cards`**
+```javascript
+router.post('/deck', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, description, hero, cards } = req.body;
+
+  // Verificar que el héroe sea de tipo 'hero'
+  const heroCard = await dbConnect.collection('cards').findOne({ _id: hero, type: 'hero' });
+  if (!heroCard) {
+    return res.status(400).send('Invalid hero ID or type');
+  }
+
+  // Verificar que las otras cartas no sean de tipo 'hero'
+  for (let cardId in cards) {
+    const card = await dbConnect.collection('cards').findOne({ _id: cardId });
+    if (!card || card.type === 'hero' || cards[cardId] > 3) {
+      return res.status(400).send('Invalid card in deck or too many copies');
+    }
+  }
+
+  // Crear el deck
+  try {
+    const result = await dbConnect.collection('decks').insertOne({ name, description, hero, cards });
+    res.status(201).send(result);
+  } catch (err) {
+    res.status(500).send('Error creating deck');
+  }
+});
+```
+
+#### 4. Manejo de Errores Avanzado
+**Ejemplo: Manejo avanzado de errores**
+```javascript
+router.use((err, req, res, next) => {
+  if (err.name === 'ValidationError') {
+    return res.status(422).json({
+      errors: Object.values(err.errors).map(e => e.message)
+    });
+  }
+  if (err.code === 'ECONNREFUSED') {
+    return res.status(503).json({ message: 'External service unavailable' });
+  }
+  next(err);
+});
+```
+
+#### 5. Autenticación y Autorización
+**Ejemplo: Middleware de autenticación JWT**
+```javascript
+const jwt = require('jsonwebtoken');
+
+const authenticateJWT = (req, res, next) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (token) {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).send('Forbidden');
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.status(401).send('Unauthorized');
+  }
+};
+```
+
+**Ejemplo: Uso del middleware de autenticación en una ruta**
+```javascript
+// Ruta protegida por JWT
+router.get('/protected', authenticateJWT, (req, res) => {
+  res.send('This is a protected route');
+});
+```
+
+#### 6. Agregaciones Avanzadas
+**Ejemplo: Obtener estadísticas de las cartas**
+```javascript
+router.get('/cards/stats', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  try {
+    const stats = await dbConnect.collection(COLLECTION).aggregate([
+      {
+        $group: {
+          _id: "$type",
+          totalCards: { $sum: 1 },
+          averageHealth: { $avg: "$health" },
+          maxAttack: { $max: "$attack" }
+        }
+      }
+    ]).toArray();
+    res.json(stats).status(200);
+  } catch (err) {
+    res.status(500).send('Error fetching card stats');
+  }
+});
+```
+
+### Consejos Adicionales
+
+- **Toma un Descanso**: Asegúrate de descansar lo suficiente antes del examen. La fatiga puede afectar tu rendimiento.
+- **Revisa tus Notas y Ejemplos**: Mantén tus notas y ejemplos organizados para una revisión rápida.
+- **Preguntas de Clarificación**: Si algo no está claro durante el examen, no dudes en pedir aclaraciones al profesor.
+- **Práctica con Simulaciones**: Realiza simulaciones de examen para acostumbrarte a la presión del tiempo y al formato de las preguntas.
+
+Espero que estos ejemplos y consejos adicionales te ayuden a preparar tu examen de recuperación. ¡Buena suerte!
+
 Con estos ejemplos adicionales, estarás bien preparado para enfrentar una variedad de preguntas y escenarios que podrían aparecer en tu examen. ¡Buena suerte!
