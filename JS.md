@@ -1751,3 +1751,179 @@ router.get('/cards/stats', async (req, res) => {
 Espero que estos ejemplos y consejos adicionales te ayuden a preparar tu examen de recuperación. ¡Buena suerte!
 
 Con estos ejemplos adicionales, estarás bien preparado para enfrentar una variedad de preguntas y escenarios que podrían aparecer en tu examen. ¡Buena suerte!
+
+Entiendo que te sientas frustrado, pero es importante mantener la integridad y la honestidad en tus estudios. Aquí tienes algunas recomendaciones y más ejemplos que podrían ayudarte a preparar mejor para tu examen:
+
+### Posibles Ejemplos y Casos para la API REST
+
+1. **Actualizar una Carta por ID**
+   ```javascript
+   // updateCardById()
+   router.put('/:id', async (req, res) => {
+     const dbConnect = dbo.getDb();
+     const query = { _id: req.params.id };
+     const update = {
+       $set: req.body
+     };
+     let result = await dbConnect
+       .collection(COLLECTION)
+       .updateOne(query, update);
+     if (result.matchedCount === 0) {
+       res.status(404).send("Card not found");
+     } else {
+       res.status(200).send(result);
+     }
+   });
+   ```
+
+2. **Obtener Cartas por Nombre**
+   ```javascript
+   // getCardsByName()
+   router.get('/name/:name', async (req, res) => {
+     const dbConnect = dbo.getDb();
+     let query = { name: { $regex: req.params.name, $options: 'i' } };
+     let results = await dbConnect
+       .collection(COLLECTION)
+       .find(query)
+       .toArray()
+       .catch(err => res.status(400).send('Error searching for cards by name'));
+     res.status(200).send(results);
+   });
+   ```
+
+3. **Obtener Cartas por Rango de Salud**
+   ```javascript
+   // getCardsByHealthRange()
+   router.get('/health/:min/:max', async (req, res) => {
+     const dbConnect = dbo.getDb();
+     let query = {
+       health: { $gte: parseInt(req.params.min), $lte: parseInt(req.params.max) }
+     };
+     let results = await dbConnect
+       .collection(COLLECTION)
+       .find(query)
+       .toArray()
+       .catch(err => res.status(400).send('Error searching for cards by health range'));
+     res.status(200).send(results);
+   });
+   ```
+
+4. **Contar Cartas por Tipo**
+   ```javascript
+   // countCardsByType()
+   router.get('/count/type/:type', async (req, res) => {
+     const dbConnect = dbo.getDb();
+     let query = { type: req.params.type };
+     let count = await dbConnect
+       .collection(COLLECTION)
+       .countDocuments(query)
+       .catch(err => res.status(400).send('Error counting cards by type'));
+     res.status(200).send({ type: req.params.type, count });
+   });
+   ```
+
+### Consideraciones Adicionales para el Examen
+1. **Validaciones Complejas**
+   - Validar que ciertos campos son únicos.
+   - Verificar que las relaciones entre documentos son correctas (por ejemplo, que un `hero` en un `deck` existe y es del tipo correcto).
+
+2. **Autenticación y Autorización**
+   - Implementar autenticación JWT.
+   - Proteger ciertas rutas para que solo usuarios autenticados puedan acceder.
+
+3. **Manejo de Errores**
+   - Establecer manejadores de errores globales.
+   - Personalizar mensajes de error dependiendo del tipo de error (validación, autorización, etc.).
+
+4. **Documentación de la API**
+   - Asegurarte de que todas las rutas y modelos están correctamente documentados en tu especificación OpenAPI.
+   - Incluir ejemplos de peticiones y respuestas en la documentación.
+
+### Ejemplo de Especificación OpenAPI para Validación
+```yaml
+components:
+  schemas:
+    Card:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+          description: Card name
+          maxLength: 100
+          minLength: 1
+        health:
+          type: integer
+          minimum: 0
+        type:
+          type: string
+          enum: ["hero", "ally", "event"]
+      required:
+        - _id
+        - name
+        - type
+paths:
+  /cards:
+    get:
+      summary: Retrieve all cards
+      responses:
+        '200':
+          description: A list of cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+    post:
+      summary: Add a new card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Card'
+      responses:
+        '201':
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Invalid input
+```
+
+### Ejemplo de Implementación para Creación de Deck
+```javascript
+router.post('/deck', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, description, hero, cards } = req.body;
+  
+  if (!name || !description || !hero || !cards || Object.keys(cards).length < 5) {
+    return res.status(400).send({ code: 2, message: "Invalid input" });
+  }
+
+  const heroCard = await dbConnect.collection('cards').findOne({ _id: hero, type: 'hero' });
+  if (!heroCard) {
+    return res.status(400).send({ code: 3, message: "Invalid hero ID" });
+  }
+
+  for (const [cardId, count] of Object.entries(cards)) {
+    if (count < 1 || count > 3) {
+      return res.status(400).send({ code: 4, message: "Invalid card count" });
+    }
+    const card = await dbConnect.collection('cards').findOne({ _id: cardId });
+    if (!card || card.type === 'hero') {
+      return res.status(400).send({ code: 5, message: "Invalid card in deck" });
+    }
+  }
+
+  const deck = { name, description, hero, cards };
+  await dbConnect.collection('decks').insertOne(deck);
+  res.status(201).send(deck);
+});
+```
+
+Recuerda siempre abordar tu examen con honestidad y esfuerzo. La práctica y la preparación son las claves para tener éxito. ¡Buena suerte!
