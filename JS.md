@@ -753,3 +753,263 @@ module.exports = router;
    - Usar herramientas como Postman para realizar pruebas manuales de la API.
 
 Estos ejemplos y consideraciones adicionales deberían ayudarte a estar preparado para enfrentar preguntas más difíciles y casos prácticos en tu examen. ¡Buena suerte
+
+
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const ObjectId = require('mongodb').ObjectId;
+const MAX_RESULTS = parseInt(process.env.MAX_RESULTS);
+const COLLECTION = 'cards';
+
+// getCardsByType() - Obtener cartas por tipo con paginación
+router.get('/type/:type', async (req, res) => {
+  let limit = MAX_RESULTS;
+  if (req.query.limit) {
+    limit = Math.min(parseInt(req.query.limit), MAX_RESULTS);
+  }
+  let next = req.query.next;
+  let query = { type: req.params.type };
+  if (next) {
+    query._id = { $lt: ObjectId(next) };
+  }
+  const dbConnect = dbo.getDb();
+  try {
+    let results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1 })
+      .sort({ _id: -1 })
+      .limit(limit)
+      .toArray();
+    next = results.length === limit ? results[results.length - 1]._id : null;
+    res.json({ results, next }).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by type');
+  }
+});
+
+module.exports = router;
+
+
+Entendido. Aquí tienes la implementación de una ruta para filtrar cartas por tipo sin paginación utilizando la estructura que has proporcionado.
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const dbo = require('../db/conn');
+const COLLECTION = 'cards';
+
+// getCardsByType() - Obtener cartas por tipo
+router.get('/type/:type', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { type: req.params.type };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by type');
+  }
+});
+
+module.exports = router;
+```
+
+### Explicación del código:
+1. **Librerías y constantes:**
+   - `express` para la creación del router.
+   - `dbo` para la conexión a la base de datos.
+   - `COLLECTION` para definir la colección de cartas (`cards`).
+
+2. **Ruta para obtener cartas por tipo:**
+   - Se obtiene el tipo de carta desde los parámetros de la ruta (`req.params.type`).
+   - Se construye la consulta para MongoDB, filtrando por tipo.
+   - Se conecta a la base de datos y realiza la consulta, proyectando solo los campos `_id`, `name`, y `type`.
+   - Se convierte el resultado a un arreglo y se envía en la respuesta JSON.
+
+3. **Manejo de errores:**
+   - Se utiliza `try-catch` para manejar posibles errores durante la consulta a la base de datos.
+   - En caso de error, se envía un mensaje de error con el código de estado `400`.
+
+### Ejemplo de uso:
+
+- **Obtener cartas de tipo "hero":**
+  ```
+  GET /cards/type/hero
+  ```
+
+- **Respuesta esperada:**
+  ```json
+  [
+    { "_id": "603dcd8f7c213e6d8f123456", "name": "Spider-Man", "type": "hero" },
+    { "_id": "603dcd8f7c213e6d8f123457", "name": "Black Panther", "type": "hero" },
+    // ... otros resultados
+  ]
+  ```
+
+Este ejemplo te permite filtrar las cartas por tipo sin implementar paginación, mostrando todos los resultados que coincidan con el tipo especificado. Si necesitas más ejemplos o detalles adicionales, házmelo saber.
+
+Claro, aquí tienes algunas opciones adicionales que podrían ser relevantes para tu examen. Estas opciones incluyen la validación de entradas, rutas adicionales para distintas funcionalidades y manejo de errores.
+
+### Validación de Entradas
+```javascript
+const { body, validationResult } = require('express-validator');
+
+// addCard() with validation
+router.post(
+  '/',
+  [
+    body('_id').isString().notEmpty(),
+    body('name').isString().notEmpty(),
+    body('type').isString().isIn(['hero', 'ally', 'event']),
+    body('hand_size').optional().isInt({ min: 1 }),
+    body('health').optional().isInt({ min: 0 }),
+    body('thwart').optional().isInt({ min: 0 }),
+    body('attack').optional().isInt({ min: 0 }),
+    body('defense').optional().isInt({ min: 0 }),
+    body('is_unique').optional().isBoolean(),
+    body('traits').optional().isArray(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const dbConnect = dbo.getDb();
+    try {
+      const result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+      res.status(201).send(result);
+    } catch (err) {
+      res.status(500).send('Error inserting card');
+    }
+  }
+);
+```
+
+### Rutas Adicionales
+#### Obtener cartas por nombre
+```javascript
+// getCardsByName() - Obtener cartas por nombre
+router.get('/name/:name', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { name: req.params.name };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by name');
+  }
+});
+```
+
+#### Obtener cartas únicas
+```javascript
+// getUniqueCards() - Obtener cartas únicas
+router.get('/unique', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { is_unique: true };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for unique cards');
+  }
+});
+```
+
+### Manejo de Errores
+#### Error 404 para rutas no definidas
+```javascript
+router.use((req, res) => {
+  res.status(404).send('Not Found');
+});
+```
+
+#### Error 500 para errores del servidor
+```javascript
+router.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+```
+
+### Búsqueda con múltiples filtros
+```javascript
+// getCardsWithFilters() - Obtener cartas con múltiples filtros
+router.get('/search', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, type, is_unique } = req.query;
+  const query = {};
+
+  if (name) query.name = name;
+  if (type) query.type = type;
+  if (is_unique !== undefined) query.is_unique = is_unique === 'true';
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1, is_unique: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards with filters');
+  }
+});
+```
+
+### Obtener conteo de cartas por tipo
+```javascript
+// getCountByType() - Obtener conteo de cartas por tipo
+router.get('/count/type', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .aggregate([
+        { $group: { _id: "$type", count: { $sum: 1 } } }
+      ])
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error getting count by type');
+  }
+});
+```
+
+### Explicaciones y ejemplos
+1. **Validación de Entradas:**
+   - Usamos `express-validator` para validar los datos enviados en el `POST`.
+   - Aseguramos que los campos requeridos estén presentes y cumplan con los criterios especificados.
+
+2. **Obtener cartas por nombre:**
+   - Similar a obtener cartas por tipo, pero filtrando por el nombre de la carta.
+
+3. **Obtener cartas únicas:**
+   - Filtra las cartas que tienen el campo `is_unique` como verdadero.
+
+4. **Manejo de Errores:**
+   - Definimos rutas para manejar errores 404 y 500, proporcionando mensajes adecuados.
+
+5. **Búsqueda con múltiples filtros:**
+   - Permite filtrar las cartas usando múltiples parámetros de consulta, como nombre, tipo y si es única.
+
+6. **Obtener conteo de cartas por tipo:**
+   - Usamos `aggregate` para contar el número de cartas por tipo y devolver el resultado.
+
+Estas opciones te permiten manejar una amplia variedad de casos y te ayudarán a prepararte mejor para cualquier tipo de pregunta que pueda aparecer en tu examen.
