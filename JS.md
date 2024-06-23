@@ -1013,3 +1013,286 @@ router.get('/count/type', async (req, res) => {
    - Usamos `aggregate` para contar el número de cartas por tipo y devolver el resultado.
 
 Estas opciones te permiten manejar una amplia variedad de casos y te ayudarán a prepararte mejor para cualquier tipo de pregunta que pueda aparecer en tu examen.
+
+Aquí tienes algunas opciones adicionales que podrían surgir en el examen. Estas incluyen rutas para buscar cartas por varios atributos, crear nuevos tipos de validaciones y manejo avanzado de errores.
+
+### Buscar cartas por múltiples atributos
+#### Buscar cartas por atributo `traits`
+```javascript
+// getCardsByTrait() - Obtener cartas por atributo de trait
+router.get('/traits/:trait', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const query = { traits: req.params.trait };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1, traits: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by trait');
+  }
+});
+```
+
+#### Buscar cartas por múltiples atributos
+```javascript
+// getCardsByAttributes() - Obtener cartas por múltiples atributos
+router.get('/search/attributes', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, type, traits } = req.query;
+  const query = {};
+
+  if (name) query.name = new RegExp(name, 'i'); // Búsqueda con regex para coincidencias parciales
+  if (type) query.type = type;
+  if (traits) query.traits = { $all: traits.split(',') }; // Búsqueda con varios traits
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1, traits: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by attributes');
+  }
+});
+```
+
+### Validaciones adicionales
+#### Validar que los traits no estén vacíos
+```javascript
+const { body, validationResult } = require('express-validator');
+
+// addCard() with additional trait validation
+router.post(
+  '/',
+  [
+    body('_id').isString().notEmpty(),
+    body('name').isString().notEmpty(),
+    body('type').isString().isIn(['hero', 'ally', 'event']),
+    body('hand_size').optional().isInt({ min: 1 }),
+    body('health').optional().isInt({ min: 0 }),
+    body('thwart').optional().isInt({ min: 0 }),
+    body('attack').optional().isInt({ min: 0 }),
+    body('defense').optional().isInt({ min: 0 }),
+    body('is_unique').optional().isBoolean(),
+    body('traits').optional().isArray().custom(traits => {
+      if (traits.length === 0) {
+        throw new Error('Traits cannot be empty');
+      }
+      return true;
+    }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const dbConnect = dbo.getDb();
+    try {
+      const result = await dbConnect.collection(COLLECTION).insertOne(req.body);
+      res.status(201).send(result);
+    } catch (err) {
+      res.status(500).send('Error inserting card');
+    }
+  }
+);
+```
+
+### Manejo avanzado de errores
+#### Error 422 para validaciones fallidas
+```javascript
+router.use((err, req, res, next) => {
+  if (err.name === 'ValidationError') {
+    return res.status(422).json({
+      errors: Object.values(err.errors).map(e => e.message)
+    });
+  }
+  next(err);
+});
+```
+
+#### Error 503 para fallos del servidor externos
+```javascript
+router.use((err, req, res, next) => {
+  if (err.code === 'ECONNREFUSED') {
+    return res.status(503).json({ message: 'External service unavailable' });
+  }
+  next(err);
+});
+```
+
+### Paginación avanzada
+#### Paginación con "skip" y "limit"
+```javascript
+router.get('/paginated', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  let { page, limit } = req.query;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || MAX_RESULTS;
+  const skip = (page - 1) * limit;
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({})
+      .project({ _id: 1, name: 1, type: 1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const total = await dbConnect.collection(COLLECTION).countDocuments();
+    const pages = Math.ceil(total / limit);
+    res.json({ results, total, pages }).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching paginated results');
+  }
+});
+```
+
+### Buscar cartas con puntuación mínima
+```javascript
+// getCardsWithMinimumStat() - Obtener cartas con puntuación mínima
+router.get('/minstat/:stat/:value', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { stat, value } = req.params;
+  const query = {};
+  query[stat] = { $gte: parseInt(value) };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, [stat]: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards with minimum stat');
+  }
+});
+```
+
+### Buscar cartas por lista de IDs
+```javascript
+// getCardsByIds() - Obtener cartas por lista de IDs
+router.get('/ids', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { ids } = req.query;
+  const query = { _id: { $in: ids.split(',') } };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by IDs');
+  }
+});
+```
+
+### Búsqueda por texto completo
+```javascript
+// getCardsByFullTextSearch() - Obtener cartas por búsqueda de texto completo
+router.get('/search/text', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { text } = req.query;
+  const query = { $text: { $search: text } };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, text: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards by text');
+  }
+});
+```
+
+### Ruta para obtener cartas por el campo `is_unique`
+```javascript
+router.get('/unique', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({ is_unique: true })
+      .project({ _id: 1, name: 1, type: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching unique cards');
+  }
+});
+```
+
+### Ruta para obtener cartas con `health` mayor que un valor dado
+```javascript
+router.get('/health/greater/:value', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { value } = req.params;
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({ health: { $gt: parseInt(value) } })
+      .project({ _id: 1, name: 1, health: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching cards with health greater than value');
+  }
+});
+```
+
+### Ruta para obtener cartas con `attack` entre un rango de valores
+```javascript
+router.get('/attack/range', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { min, max } = req.query;
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find({ attack: { $gte: parseInt(min), $lte: parseInt(max) } })
+      .project({ _id: 1, name: 1, attack: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error fetching cards with attack in range');
+  }
+});
+```
+
+### Ruta para obtener cartas con múltiples criterios combinados
+```javascript
+router.get('/search/multiple', async (req, res) => {
+  const dbConnect = dbo.getDb();
+  const { name, type, minHealth, maxAttack } = req.query;
+  const query = {};
+
+  if (name) query.name = new RegExp(name, 'i');
+  if (type) query.type = type;
+  if (minHealth) query.health = { $gte: parseInt(minHealth) };
+  if (maxAttack) query.attack = { $lte: parseInt(maxAttack) };
+
+  try {
+    const results = await dbConnect
+      .collection(COLLECTION)
+      .find(query)
+      .project({ _id: 1, name: 1, type: 1, health: 1, attack: 1 })
+      .toArray();
+    res.json(results).status(200);
+  } catch (err) {
+    res.status(400).send('Error searching for cards with multiple criteria');
+  }
+});
+```
+
+Estas opciones adicionales deberían cubrir una amplia gama de posibilidades que podrían surgir en tu examen, permitiéndote estar preparado para cualquier tipo de pregunta relacionada con CRUD y consultas avanzadas en MongoDB.
