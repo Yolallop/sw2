@@ -410,3 +410,346 @@ router.get('/search', async (req, res) => {
 
 ### Conclusión
 Este manual proporciona una guía completa para realizar operaciones CRUD, paginación y validaciones en MongoDB usando Express.js. Puedes usar estos ejemplos como referencia para tus exámenes y proyectos, adaptándolos según sea necesario.
+
+Entendido, te proporcionaré ejemplos adicionales de posibles casos que podrían surgir en un examen similar, enfocándome en operaciones CRUD (Create, Read, Update, Delete) y paginación, pero utilizando diferentes contextos y consideraciones. 
+
+### Ejemplo Adicional 1: Gestión de Productos en un Inventario
+
+#### Especificación OpenAPI
+
+```yaml
+openapi: 3.0.3
+info:
+  description: API para la gestión de productos en un inventario.
+  version: 1.0.0
+  title: Inventario de Productos
+tags:
+  - name: product
+    description: Todo sobre los productos en el inventario
+paths:
+  /product:
+    get:
+      summary: Obtener todos los productos
+      description: Recuperar todos los productos en el inventario con paginación opcional.
+      parameters:
+        - name: limit
+          in: query
+          description: Número de productos a devolver
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+        - name: offset
+          in: query
+          description: Desplazamiento para la paginación
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 0
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Products'
+    post:
+      tags:
+        - product
+      summary: Añadir un nuevo producto
+      description: Añadir un nuevo producto al inventario.
+      operationId: addProduct
+      requestBody:
+        description: Objeto del producto que se necesita añadir al inventario
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Entrada inválida
+  /product/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      tags:
+        - product
+      summary: Encontrar producto por ID
+      description: Devuelve un solo producto por ID.
+      operationId: getProductById
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: ID inválido proporcionado
+        '404':
+          description: Producto no encontrado
+    put:
+      tags:
+        - product
+      summary: Actualizar un producto
+      description: Actualiza un producto existente en el inventario.
+      operationId: updateProduct
+      requestBody:
+        description: Objeto del producto que se necesita actualizar
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Operación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: ID inválido proporcionado
+        '404':
+          description: Producto no encontrado
+    delete:
+      tags:
+        - product
+      summary: Eliminar un producto
+      description: Elimina un producto por ID.
+      operationId: deleteProduct
+      responses:
+        '200':
+          description: Operación exitosa
+        '400':
+          description: ID de producto inválido
+        '404':
+          description: Producto no encontrado
+components:
+  parameters:
+    ID:
+      description: ID del producto
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: "507f1f77bcf86cd799439011"
+  schemas:
+    Products:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductMin'
+        next:
+          type: string
+          description: ID del siguiente producto para la paginación
+      required:
+        - results
+    ProductMin:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID del producto
+        name:
+          type: string
+          description: Nombre del producto
+        category:
+          type: string
+          description: Categoría del producto
+      required:
+        - _id
+        - name
+        - category
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID del producto
+        name:
+          type: string
+          description: Nombre del producto
+          maxLength: 100
+          minLength: 1
+        description:
+          type: string
+          description: Descripción del producto
+          maxLength: 500
+        price:
+          type: number
+          description: Precio del producto
+          minimum: 0
+        stock:
+          type: integer
+          description: Cantidad en stock
+          minimum: 0
+        category:
+          type: string
+          description: Categoría del producto
+      required:
+        - _id
+        - name
+        - price
+        - stock
+        - category
+```
+
+### Implementación del CRUD en `products.js`
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const { ObjectId } = require('mongodb');
+const db = require('../db');
+
+// Error handling utility
+const createError = (code, message) => ({ code, message });
+
+// GET /product - Retrieve all products with optional pagination
+router.get('/', async (req, res) => {
+  const { limit = 10, offset = 0 } = req.query;
+  
+  try {
+    const products = await db.collection('products')
+      .find({})
+      .skip(parseInt(offset))
+      .limit(parseInt(limit))
+      .toArray();
+      
+    res.status(200).json({
+      results: products,
+      next: products.length === parseInt(limit) ? `/product?limit=${limit}&offset=${parseInt(offset) + parseInt(limit)}` : null,
+    });
+  } catch (error) {
+    res.status(500).json(createError(5, 'Internal server error'));
+  }
+});
+
+// POST /product - Add a new product to the inventory
+router.post('/', async (req, res) => {
+  const { name, description, price, stock, category } = req.body;
+
+  if (!name || !price || !stock || !category) {
+    return res.status(400).json(createError(1, 'Invalid input'));
+  }
+
+  const product = {
+    name,
+    description,
+    price,
+    stock,
+    category,
+  };
+
+  try {
+    const result = await db.collection('products').insertOne(product);
+    res.status(201).json(result.ops[0]);
+  } catch (error) {
+    res.status(500).json(createError(5, 'Internal server error'));
+  }
+});
+
+// GET /product/{productId} - Retrieve a single product by ID
+router.get('/:productId', async (req, res) => {
+  const { productId } = req.params;
+
+  if (!ObjectId.isValid(productId)) {
+    return res.status(400).json(createError(2, 'Invalid ID supplied'));
+  }
+
+  try {
+    const product = await db.collection('products').findOne({ _id: ObjectId(productId) });
+    if (!product) {
+      return res.status(404).json(createError(3, 'Product not found'));
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json(createError(5, 'Internal server error'));
+  }
+});
+
+// PUT /product/{productId} - Update a product by ID
+router.put('/:productId', async (req, res) => {
+  const { productId } = req.params;
+  const { name, description, price, stock, category } = req.body;
+
+  if (!ObjectId.isValid(productId)) {
+    return res.status(400).json(createError(2, 'Invalid ID supplied'));
+  }
+
+  const update = { $set: { name, description, price, stock, category } };
+
+  try {
+    const result = await db.collection('products').updateOne({ _id: ObjectId(productId) }, update);
+    if (result.matchedCount === 0) {
+      return res.status(404).json(createError(3, 'Product not found'));
+    }
+    res.status(200).json({ _id: productId, name, description, price, stock, category });
+  } catch (error) {
+    res.status(500).json(createError(5, 'Internal server error'));
+  }
+});
+
+// DELETE /product/{productId} - Delete a product by ID
+router.delete('/:productId', async (req, res) => {
+  const { productId } = req.params;
+
+  if (!ObjectId.isValid(productId)) {
+    return res.status(400).json(createError(2, 'Invalid ID supplied'));
+  }
+
+  try {
+    const result = await db.collection('products').deleteOne({ _id: ObjectId(productId) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json(createError(3, 'Product not found'));
+    }
+    res.status(200).json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    res.status(500).json(createError(5, 'Internal server error'));
+  }
+});
+
+module.exports = router;
+```
+```
+
+### Consideraciones Adicionales
+
+1. **Validaciones adicionales**:
+   - Verificar tipos de datos, longitudes y rangos en el servidor además de en la especificación OpenAPI.
+   - Asegurarse de que los IDs de productos, cartas o cualquier otra entidad cumplan con el formato correcto antes de realizar operaciones en la base de datos.
+
+2. **Manejo de errores**:
+   - Crear un conjunto robusto de códigos de error y mensajes para cubrir todos los posibles escenarios.
+   - Implementar manejo de errores global en la aplicación para capturar y manejar errores inesperados.
+
+3. **Seguridad**:
+   - Implementar autenticación y autorización para asegurar que solo usuarios autorizados puedan realizar ciertas operaciones.
+   - Proteger las rutas sensibles y datos importantes.
+
+4. **Paginación y filtros**:
+   - Implementar paginación y filtros en las rutas GET para mejorar la eficiencia y manejabilidad de las respuestas con muchos datos.
+   - Permitir a los usuarios aplicar filtros basados en múltiples criterios.
+
+5. **Documentación**:
+   - Mantener la documentación actualizada con todos los endpoints, parámetros, ejemplos de peticiones y respuestas.
+   - Usar herramientas como Swagger UI para proporcionar una interfaz interactiva para probar la API.
+
+6. **Pruebas**:
+   - Escribir pruebas unitarias y de integración para asegurar que todas las rutas funcionen correctamente y manejen errores de manera adecuada.
+   - Usar herramientas como Postman para realizar pruebas manuales de la API.
+
+Estos ejemplos y consideraciones adicionales deberían ayudarte a estar preparado para enfrentar preguntas más difíciles y casos prácticos en tu examen. ¡Buena suerte
