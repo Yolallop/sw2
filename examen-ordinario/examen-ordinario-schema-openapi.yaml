@@ -320,20 +320,14 @@ components:
         - is_unique
         - traits
         - type
-      # Para diferenciar entre tipos de cartas (hero, ally, event)
-      discriminator:
-        propertyName: type
-        mapping:
-          hero: "#/components/schemas/HeroCard"
-          ally: "#/components/schemas/AllyCard"
-          event: "#/components/schemas/EventCard"
+      oneOf:
+        - $ref: "#/components/schemas/HeroCard"
+        - $ref: "#/components/schemas/AllyCard"
+        - $ref: "#/components/schemas/EventCard"
 
     HeroCard:
-      allOf:
-        - $ref: "#/components/schemas/Card"
-        - type: object
-        - required: [hand_size, health, thwart, attack, defense]
-          properties:
+      type: object
+      properties:
             hand_size:
               $ref: "#/components/schemas/HandSize"
             health:
@@ -344,30 +338,28 @@ components:
               $ref: "#/components/schemas/Attack"
             defense:
               $ref: "#/components/schemas/Defense"
+      required: [hand_size, health, thwart, attack, defense]
 
     AllyCard:
-      allOf:
-        - $ref: "#/components/schemas/Card"
-        - type: object
-        - required: [cost, health, thwart, attack]
-          properties:
-            cost:
-              $ref: "#/components/schemas/Cost"
-            health:
-              $ref: "#/components/schemas/Health"
-            thwart:
-              $ref: "#/components/schemas/Thwart"
-            attack:
-              $ref: "#/components/schemas/Attack"
+      type: object
+      properties:
+          cost:
+            $ref: "#/components/schemas/Cost"
+          health:
+            $ref: "#/components/schemas/Health"
+          thwart:
+            $ref: "#/components/schemas/Thwart"
+          attack:
+            $ref: "#/components/schemas/Attack"
+      required: [cost, health, thwart, attack]
+          
 
     EventCard:
-      allOf:
-        - $ref: "#/components/schemas/Card"
-        - type: object
-        - required: [cost]
-          properties:
+      type: object
+      properties:
             cost:
               $ref: "#/components/schemas/Cost"
+      required: [cost]
 
     Decks:
       type: object
