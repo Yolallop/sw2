@@ -1,4 +1,4 @@
-# Soluciones al problema 2
+# Problema 2
 
 ## Apartado 1: Indicar el título y el número de premios de la película con más premios (wins dentro de awards).
 
