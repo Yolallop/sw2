@@ -1,0 +1,343 @@
+openapi: 3.0.3
+info:
+  description: |-
+    My Card Game documentation
+  version: 1.0.0
+  title: Card Game
+tags:
+  - name: card
+    description: Everything about the Card Game
+paths:
+  /card:
+    get:
+      summary: GET all cards
+      description: GET all cards
+      responses:
+        "200":
+          description: "OK"
+          content:
+             application/json:
+              schema: 
+                $ref: '#/components/schemas/Cards'
+    post:
+      tags:
+        - card
+      summary: Add a new card to the game
+      description: Add a new card to the game
+      operationId: addCard
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '405':
+          description: Invalid input
+      requestBody:
+        description: Add a new card to the game
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+            example:
+              code: 2
+              message: Invalid input
+  /card/{cardId}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      tags:
+        - card
+      summary: Find card by ID
+      description: Returns a single card
+      operationId: getCardById
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Card'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 3
+                message: Invalid ID supplied
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 4
+                message: Card not found
+    delete:
+      tags:
+        - card
+      summary: Deletes a card
+      description: ''
+      operationId: deleteCard
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid card ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 5
+                message: Invalid card ID
+          
+  /deck:
+    post:
+      tags:
+        - card
+      summary: Add a new deck to the game
+      description: Add a new deck to the game
+      operationId: addDeck
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deck'
+        '405':
+          description: Invalid input
+      requestBody:
+        description: Add a new card to the game
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+            example:
+              code: 2
+              message: Invalid input
+components:
+  parameters:
+    ID:
+      description: Card ID
+      name: cardId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ID"
+  schemas:
+    Cards:
+      type: object
+      properties:
+        results:
+          $ref: "#/components/schemas/CardsArray"
+        next:
+          type: string
+          description: Card next ID for pagination search
+      required:
+        - results
+        - next
+    CardsArray:
+      type: array
+      items:
+        $ref: "#/components/schemas/CardMin"
+    CardMin:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ID"
+        name:
+          $ref: "#/components/schemas/Name"
+        type:
+          $ref: "#/components/schemas/Type"
+      required:
+        - _id
+        - name
+        - type
+        
+    Deck:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre del mazo
+          example: Spider-Man rocks!
+        description:
+          type: string
+          description: Descripcion del mazo
+          example: The description
+        hero:
+          $ref: "#/components/schemas/ID"
+        cards:
+          type: object
+          additionalProperties:
+              type: integer
+              minimum: 1
+              maximum: 3
+          example:
+            01002: 1
+            01084: 1
+            01071: 2
+            01005: 3
+      required:
+        - name
+        - description
+        - hero
+        - cards
+            
+            
+    Card:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/Name"
+        _id:
+          $ref: "#/components/schemas/ID"
+        text:
+          $ref: "#/components/schemas/Text"
+        is_unique:
+          $ref: "#/components/schemas/IsUnique"
+        traits:
+          $ref: "#/components/schemas/Traits"
+        type:
+          $ref: "#/components/schemas/Type"
+      
+      required:
+        - name
+        - _id
+        - text
+        - is_unique
+        - traits
+        - type
+      oneOf:
+        - $ref: "#/components/schemas/Hero"
+        - $ref: "#/components/schemas/Ally"
+        - $ref: "#/components/schemas/Event"
+    
+    Hero:
+      type: object
+      properties:
+        hand_size:
+          $ref: "#/components/schemas/HandSize"
+        health:
+          $ref: "#/components/schemas/Health"
+        thwart:
+          $ref: "#/components/schemas/Thwart"
+        attack:
+          $ref: "#/components/schemas/Attack"
+        deffense:
+          $ref: "#/components/schemas/Deffense"
+      
+      required:
+        - hand_size
+        - health
+        - thwart
+        - attack
+        - deffense
+        
+        
+    Ally:
+      type: object
+      properties:
+        cost:
+          $ref: "#/components/schemas/Cost"
+        health:
+          $ref: "#/components/schemas/Health"
+        thwart:
+          $ref: "#/components/schemas/Thwart"
+        attack:
+          $ref: "#/components/schemas/Attack"
+      required:
+        - cost
+        - health
+        - thwart
+        - attack
+        - deffense
+
+    Event:
+      type: object
+      properties:
+        cost:
+          $ref: "#/components/schemas/Cost"
+      required:
+        - cost
+    
+    Cost:
+      type: integer
+      description: Coste de la carta
+    
+    Deffense:
+      type: integer
+      description: Nivel de defensa
+    
+    Attack:
+      type: integer
+      description: Nivel de ataque
+    
+    Thwart:
+      type: integer
+      description: Nivel de frustracion
+    
+    Health:
+      type: integer
+      description: Vida de la carta
+    
+    HandSize:
+      type: integer
+      description: Tamaño de la mano
+    
+    Type:
+      type: string
+      enum: ["hero", "ally", "event"]
+      description: Card type
+    ID:
+      type: string
+      description: Card ID obtained from the database
+      example: 01001
+    Name: 
+      type: string
+      description: Nombre de la carta
+    Text:
+      type: string
+      description: Descripcion de la carta
+    IsUnique:
+      type: boolean
+      description: Indica si la carta es unica o no
+    Traits:
+      type: array
+      items: 
+        type: string
+        
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          enum: 
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+        message:
+          type: string
+          enum:
+            - Invalid ID
+            - Invalid input
+            - Invalid ID supplied
+            - Card not found
+            - Invalid Card ID
+            
+    
+servers:
+  - url: localhost:3000/api/
