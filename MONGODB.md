@@ -2,6 +2,102 @@
 
 ### MongoDB: Manual de Consultas
 
+
+### Reescritas de las consultas originales
+
+**Apartado 1:** Indicar el título y el número de premios de la película con más premios.
+```javascript
+db.movies.find().sort({ wins: -1 }).limit(1).projection({ title: 1, wins: 1 })
+```
+
+**Apartado 2:** Listado de clasificaciones de edad y número de documentos con cada clasificación.
+```javascript
+db.movies.aggregate([
+  { $group: { _id: "$rated", count: { $sum: 1 } } },
+  { $project: { rated: "$_id", count: 1, _id: 0 } }
+])
+```
+
+**Apartado 3:** Listado de los diferentes géneros de película.
+```javascript
+db.movies.distinct("genres")
+```
+
+**Apartado 4:** Número de películas entre los años 1970 y 1975.
+```javascript
+db.movies.countDocuments({ year: { $gte: 1970, $lte: 1975 } })
+```
+
+### Consultas Adicionales Complejas
+
+**Consulta 1:** Top 5 actores con más películas.
+```javascript
+db.movies.aggregate([
+  { $unwind: "$cast" },
+  { $group: { _id: "$cast", count: { $sum: 1 } } },
+  { $sort: { count: -1 } },
+  { $limit: 5 },
+  { $project: { actor: "$_id", count: 1, _id: 0 } }
+])
+```
+
+**Consulta 2:** Número total de películas por director.
+```javascript
+db.movies.aggregate([
+  { $group: { _id: "$director", totalMovies: { $sum: 1 } } },
+  { $project: { director: "$_id", totalMovies: 1, _id: 0 } }
+])
+```
+
+**Consulta 3:** Películas con una calificación promedio de al menos 8.
+```javascript
+db.movies.find({ "imdb.rating": { $gte: 8 } }).projection({ title: 1, "imdb.rating": 1 })
+```
+
+**Consulta 4:** Listar los 5 géneros más populares y el número de películas por género.
+```javascript
+db.movies.aggregate([
+  { $unwind: "$genres" },
+  { $group: { _id: "$genres", count: { $sum: 1 } } },
+  { $sort: { count: -1 } },
+  { $limit: 5 }
+])
+```
+
+**Consulta 5:** Películas dirigidas por más de un director.
+```javascript
+db.movies.find({ directors: { $size: { $gt: 1 } } }).projection({ title: 1, directors: 1 })
+```
+
+**Consulta 6:** Películas con una duración (runtime) mayor a 150 minutos.
+```javascript
+db.movies.find({ runtime: { $gt: 150 } }).projection({ title: 1, runtime: 1 })
+```
+
+**Consulta 7:** Películas con un presupuesto mayor a 100 millones y que hayan ganado premios.
+```javascript
+db.movies.find({ budget: { $gt: 100000000 }, wins: { $gt: 0 } }).projection({ title: 1, budget: 1, wins: 1 })
+```
+
+**Consulta 8:** Actores que han trabajado con el mismo director en al menos 3 películas.
+```javascript
+db.movies.aggregate([
+  { $unwind: "$cast" },
+  { $group: { _id: { director: "$director", actor: "$cast" }, count: { $sum: 1 } } },
+  { $match: { count: { $gte: 3 } } },
+  { $project: { director: "$_id.director", actor: "$_id.actor", count: 1, _id: 0 } }
+])
+```
+
+### Tips para el Examen
+
+1. **Revisa la Sintaxis de MongoDB**: Familiarízate con las consultas y operaciones de agregación.
+2. **Entiende las Preguntas**: Asegúrate de leer y entender completamente cada pregunta antes de comenzar a escribir la consulta.
+3. **Practica con Ejemplos Reales**: Intenta resolver varias consultas antes del examen para ganar confianza.
+4. **Usa la Documentación**: Mantén la documentación de MongoDB a mano para consultas rápidas durante el examen.
+5. **Gestiona tu Tiempo**: No pases demasiado tiempo en una sola pregunta. Si te quedas atascado, pasa a la siguiente y vuelve más tarde.
+
+
 ### Introducción a MongoDB
 - **MongoDB** es una base de datos NoSQL que almacena datos en documentos BSON (una extensión binaria de JSON).
 - Utiliza colecciones para agrupar documentos y cada documento puede tener una estructura diferente, lo que proporciona flexibilidad en el diseño de la base de datos.
